@@ -7,17 +7,17 @@ import sys
 
 
 
-DOCUMENT_RE = "@[^{@]"
+LITERALLINE_RE = "(\s+|.+\s{3,}|@[^{@]|@{[cr]}|.*@{h\d})"
 
 LINK_RE = '@{ *"(?P<text>[^"]+)" LINK [^ }]+ *}'
 ATTR_RE = "@{\w+}"
 MARKUP_RE = f"({LINK_RE}|{ATTR_RE})"
 
-LITERAL_RE = "@(?P<char>[^{])"
+LITERALTOKEN_RE = "@(?P<char>[^{])"
 TEXT_RE = "[^@ ]+"
 SPACE_RE = " +"
 
-TOKEN_RE = f"(?P<token>{MARKUP_RE}|{LITERAL_RE}|{TEXT_RE}|{SPACE_RE})(?P<remainder>.*)"
+TOKEN_RE = f"(?P<token>{MARKUP_RE}|{LITERALTOKEN_RE}|{TEXT_RE}|{SPACE_RE})(?P<remainder>.*)"
 
 
 LINE_MAXLEN = 80
@@ -28,7 +28,7 @@ def render_token(t):
     if m:
         return m["text"]
 
-    m = re.match(LITERAL_RE, t)
+    m = re.match(LITERALTOKEN_RE, t)
     if m:
         c = m["char"]
         if c == "(":
@@ -122,9 +122,9 @@ with sys.stdin as f:
         # remove any trailing whitespace
         l = l.rstrip()
 
-        if re.match(DOCUMENT_RE, l):
+        if re.match(LITERALLINE_RE, l):
             writeline()
-            print(l)
+            writeliteral(l)
             continue
 
         # if the line is blank, we complete any line we're building up
@@ -133,13 +133,6 @@ with sys.stdin as f:
             writeline()
             writeliteral()
             space = ""
-            continue
-
-        # if the line starts with a space, we complete any line and
-        # include this one verbatim
-        if l.startswith(' '):
-            writeline()
-            writeliteral(l)
             continue
 
         # go through bits of line
