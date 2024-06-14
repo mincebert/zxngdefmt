@@ -20,7 +20,7 @@ SPACE_RE = " +"
 TOKEN_RE = f"(?P<token>{MARKUP_RE}|{LITERAL_RE}|{TEXT_RE}|{SPACE_RE})(?P<remainder>.*)"
 
 
-LINE_MAXLEN = 40
+LINE_MAXLEN = 80
 
 
 def render_token(t):
@@ -44,23 +44,103 @@ def render_token(t):
 
 
 
-buffer_markup = ""
-buffer_render = ""
+line_markup = ""
+line_render = ""
+
+word_markup = ""
+word_render = ""
+
+space = ""
+
+
+def writeline():
+    """If there is anything in it, write the current line buffer out and
+    clear it, ready for the next line.
+    """
+    global line_markup, line_render
+    if line_markup:
+        print(line_markup)
+        line_markup = ""
+        line_render = ""
+
+
+def writeliteral(l=""):
+    """Write a literal line.
+    """
+    global line_markup, word_markup, space
+    if line_markup or word_markup:
+        raise AssertionError("line or word buffers not empty when"
+                             " writing literal line")
+    print(l)
+    # if we had a space from the previous line, scrap that
+    space = ""
+
+
+def completeword():
+    """Complete the current word.  If the rendered word would fit on the
+    current line, it is just appended.  If, however, it would flow out
+    of the right margin, the current line will be completed and a new
+    line begun with the current word.
+
+    Returns True if a word was completed.
+    """
+    global line_markup, line_render, word_markup, word_render, space
+
+    # if no word or line, return False as we didn't actually complete a word
+    if not (line_render) and not(word_render):
+        return False
+
+    if len(line_render + space + word_render) > LINE_MAXLEN:
+        writeline()
+        # discard the space, if we're beginning a new line
+    else:
+        # add the space, if we're continuing the line
+        line_markup += space
+        line_render += space
+    line_markup += word_markup
+    line_render += word_render
+
+    # start a new word with no space
+    word_markup = ""
+    word_render = ""
+    space = ""
+
+    # we completed a word so return True
+    return True
+
+
+def appendtoken(t):
+    """Append the supplied token to the current word.
+    """
+    global word_markup, word_render
+    word_markup += t
+    word_render += render_token(t)
+
 
 with sys.stdin as f:
-    def writebuffer():
-        global buffer_markup, buffer_render
-        print("OUTPUT BUFFER >>>", buffer_markup)
-        buffer_markup = ""
-        buffer_render = ""
-
     for l in f:
+        # remove any trailing whitespace
+        l = l.rstrip()
+
         if re.match(DOCUMENT_RE, l):
-            writebuffer()
-            print("DOC >>>", l)
+            writeline()
+            print(l)
             continue
 
-        # TODO: need to handle line beginning with space
+        # if the line is blank, we complete any line we're building up
+        # and write a blank line
+        if not l:
+            writeline()
+            writeliteral()
+            space = ""
+            continue
+
+        # if the line starts with a space, we complete any line and
+        # include this one verbatim
+        if l.startswith(' '):
+            writeline()
+            writeliteral(l)
+            continue
 
         # go through bits of line
         while l:
@@ -74,13 +154,16 @@ with sys.stdin as f:
             l = g["remainder"]
             #print(f"REMAINDER >>> <{l}>")
 
-            token_render = render_token(token)
-            if len(buffer_render + token_render) > LINE_MAXLEN:
-                print("MAXLEN REACHED!")
-                writebuffer()
+            if re.match(SPACE_RE, token):
+                completeword()
+                space = token
+                continue
 
-            # TODO: skip spaces at start of line
-            buffer_markup += token
-            buffer_render += token_render
+            appendtoken(token)
 
-writebuffer()
+        # end of line completes a word and adds a space
+        if completeword():
+            space = " "
+
+# if there is something in the buffer
+writeline()
