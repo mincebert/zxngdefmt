@@ -7,7 +7,6 @@ import sys
 
 
 
-LITERALLINE_RE = "(\s+|.+\s{3,}|@[^{@]|@{[cr]}|.*@{h\d})"
 
 LINK_RE = '@{ *"(?P<text>[^"]+)" LINK [^ }]+ *}'
 ATTR_RE = "@{\w+}"
@@ -18,6 +17,20 @@ TEXT_RE = "[^@ ]+"
 SPACE_RE = " +"
 
 TOKEN_RE = f"(?P<token>{MARKUP_RE}|{LITERALTOKEN_RE}|{TEXT_RE}|{SPACE_RE})(?P<remainder>.*)"
+
+
+# lines to include literally (i.e. without reformatting); includes:
+#
+# * lines with leading spaces
+#
+# * lines with 3 or more spaces between words (assumed to be tables)
+#
+# * lines beginning with '@' but not '@@' or '@{' (indicate node names,
+#   links to next/previous/TOC pages)
+#
+# * lines consisting only of a single link (assumed to be a list, one
+#   item per line)
+LITERALLINE_RE = "(\s+|.+\s{3,}|@[^{@]|@{[cr]}|.*@{h\d}|" + LINK_RE + ")"
 
 
 LINE_MAXLEN = 80
