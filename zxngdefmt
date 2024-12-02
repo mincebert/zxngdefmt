@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# zxngdefmt
+
+
+
+__version__ = "0.1"
+
 
 
 import re
@@ -7,33 +13,80 @@ import sys
 
 
 
+# --- constants ---
 
-LINK_RE = '@{ *"(?P<text>[^"]+)" LINK [^ }]+ *}'
-ATTR_RE = "@{\w+}"
-MARKUP_RE = f"({LINK_RE}|{ATTR_RE})"
 
+
+# <?>_RE = string
+#
+# Regular expressions to match various bits of NextGuide markup.
+
+
+# link to another node
+LINK_RE = r'@{ *"(?P<text>[^"]+)" LINK [^ }]+ *}'
+
+# formatting attribute
+ATTR_RE = r"@{\w+}"
+
+# literal characters
 LITERALTOKEN_RE = "@(?P<char>[^{])"
-TEXT_RE = "[^@ ]+"
+
+# plain (unformatted) word (as opposed to markup)
+WORD_RE = "[^@ ]+"
+
+# one or more spaces
 SPACE_RE = " +"
 
-TOKEN_RE = f"(?P<token>{MARKUP_RE}|{LITERALTOKEN_RE}|{TEXT_RE}|{SPACE_RE})(?P<remainder>.*)"
+# match any type of markup token or word
+TOKEN_RE = (r"(?P<token>"
+            + LINK_RE
+            + r'|' + ATTR_RE
+            + r'|' + LITERALTOKEN_RE
+            + r'|' + WORD_RE
+            + r'|' + SPACE_RE
+            + r')'
+            + r"(?P<remainder>.*)")
 
 
-# lines to include literally (i.e. without reformatting); includes:
+# LITERALLINE_RE = string
 #
-# * lines with leading spaces
-#
-# * lines with 3 or more spaces between words (assumed to be tables)
-#
-# * lines beginning with '@' but not '@@' or '@{' (indicate node names,
-#   links to next/previous/TOC pages)
-#
-# * lines consisting only of a single link (assumed to be a list, one
-#   item per line)
-LITERALLINE_RE = "(\s+|.+\s{3,}|@[^{@]|@{[cr]}|.*@{h\d}|" + LINK_RE + ")"
+# Regular expression to match lines which must be included in the output
+# guide literally (i.e. without reformatting).  Includes:
 
+LITERALLINE_RE = (r'('
+
+                  # lines with leading spaces
+                  + r"\s+"
+
+                  # lines with 3 or more consecutive spaces
+                  + r"|.+\s{3,}"
+
+                  # lines beginning with '@' but not '@@' or '@{' -
+                  # these indicate node names, lines to adjacent pages
+                  # or TOC/index pages
+                  + r"|@[^{@]"
+
+                  # lines with centred or right-justified text
+                  + r"|@{[cr]}"
+
+                  # lines with headers
+                  + r"|.*@{h\d}"
+
+                  # lines consisting solely of a single link
+                  + r'|' + LINK_RE + r'$'
+
+                  + r')')
+
+
+
+# maximum length for a single line in the output guide
 
 LINE_MAXLEN = 80
+
+
+
+# --- functions ---
+
 
 
 def render_token(t):
