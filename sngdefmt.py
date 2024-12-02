@@ -92,11 +92,12 @@ def completeword():
 
     if len(line_render + space + word_render) > LINE_MAXLEN:
         writeline()
-        # discard the space, if we're beginning a new line
+        # don't add the space, as we're beginning a new line
     else:
-        # add the space, if we're continuing the line
+        # add the space, as we're continuing the line
         line_markup += space
         line_render += space
+
     line_markup += word_markup
     line_render += word_render
 
