@@ -37,7 +37,7 @@ WORD_RE = "[^@ ]+"
 # one or more spaces
 SPACE_RE = " +"
 
-# match any type of markup token or word
+# match any type of markup token or word or block of spaces
 TOKEN_RE = (r"(?P<token>"
             + LINK_RE
             + r'|' + ATTR_RE
@@ -90,22 +90,37 @@ LINE_MAXLEN = 80
 
 
 def render_token(t):
+    """Render a NextGuide token (which could be markup, or a literal
+    word, or block of spaces) into the text that would be displayed on
+    screen (ignoring formatting).  This is used to work out the length
+    of rendered markup and calculate displayed line lengths; it is not
+    used to generate output.
+    """
+
+    # if the token is a link, use the displayed text field
     m = re.match(LINK_RE, t)
     if m:
         return m["text"]
 
+    # if the token is a literal character, convert that to the displayed
+    # character
     m = re.match(LITERALTOKEN_RE, t)
     if m:
         c = m["char"]
+
+        # '@(' is the copyright sign
         if c == "(":
             return "\N{COPYRIGHT SIGN}"
+
         else:
             return c
 
+    # attribute formatting codes don't render to anything displayed
     m = re.match(ATTR_RE, t)
     if m:
         return ""
 
+    # we have a literal word or block of spaces - just use that directly
     return t
 
 
