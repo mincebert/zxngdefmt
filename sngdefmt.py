@@ -87,7 +87,7 @@ def completeword():
     global line_markup, line_render, word_markup, word_render, space
 
     # if no word or line, return False as we didn't actually complete a word
-    if not (line_render) and not(word_render):
+    if (not line_render) and (not word_render):
         return False
 
     if len(line_render + space + word_render) > LINE_MAXLEN:
