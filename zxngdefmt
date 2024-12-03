@@ -124,80 +124,92 @@ def render_token(t):
     return t
 
 
+class GuideLine(object):
+    def __init__(self):
+        super().__init__()
 
-line_markup = ""
-line_render = ""
+        self.line_markup = ""
+        self.line_render = ""
 
-word_markup = ""
-word_render = ""
+        self.word_markup = ""
+        self.word_render = ""
 
-space = ""
-
-
-def writeline():
-    """If there is anything in it, write the current line buffer out and
-    clear it, ready for the next line.
-    """
-    global line_markup, line_render
-    if line_markup:
-        print(line_markup)
-        line_markup = ""
-        line_render = ""
+        self.space = ""
 
 
-def writeliteral(l=""):
-    """Write a literal line.
-    """
-    global line_markup, word_markup, space
-    if line_markup or word_markup:
-        raise AssertionError("line or word buffers not empty when"
-                             " writing literal line")
-    print(l)
-    # if we had a space from the previous line, scrap that
-    space = ""
+    def writeline(self):
+        """If there is anything in it, write the current line buffer out and
+        clear it, ready for the next line.
+        """
+
+        if self.line_markup:
+            l = self.line_markup
+            self.line_markup = ""
+            self.line_render = ""
+
+            return l
+
+        return None
 
 
-def completeword():
-    """Complete the current word.  If the rendered word would fit on the
-    current line, it is just appended.  If, however, it would flow out
-    of the right margin, the current line will be completed and a new
-    line begun with the current word.
+    def writeliteral(self, l=""):
+        """Write a literal line.
+        """
 
-    Returns True if a word was completed.
-    """
-    global line_markup, line_render, word_markup, word_render, space
+        if self.line_markup or self.word_markup:
+            raise AssertionError("line or word buffers not empty when"
+                                " writing literal line")
 
-    # if no word or line, return False as we didn't actually complete a word
-    if (not line_render) and (not word_render):
-        return False
+        # if we had a space from the previous line, scrap that
+        self.space = ""
 
-    if len(line_render + space + word_render) > LINE_MAXLEN:
-        writeline()
-        # don't add the space, as we're beginning a new line
-    else:
-        # add the space, as we're continuing the line
-        line_markup += space
-        line_render += space
-
-    line_markup += word_markup
-    line_render += word_render
-
-    # start a new word with no space
-    word_markup = ""
-    word_render = ""
-    space = ""
-
-    # we completed a word so return True
-    return True
+        return l
 
 
-def appendtoken(t):
-    """Append the supplied token to the current word.
-    """
-    global word_markup, word_render
-    word_markup += t
-    word_render += render_token(t)
+    def completeword(self, space=""):
+        """Complete the current word.  If the rendered word would fit on the
+        current line, it is just appended.  If, however, it would flow out
+        of the right margin, the current line will be completed and a new
+        line begun with the current word.
 
+        Returns a completed line, if one was, or None.
+        """
+
+        # if no word or line, return None as we didn't actually complete a word
+        if (not self.line_render) and (not self.word_render):
+            return None
+
+        l = None
+        if len(self.line_render + self.space + self.word_render) > LINE_MAXLEN:
+            l = self.writeline()
+            # don't add the space, as we're beginning a new line
+
+        else:
+            # add the space, as we're continuing the line
+            self.line_markup += self.space
+            self.line_render += self.space
+
+        self.line_markup += self.word_markup
+        self.line_render += self.word_render
+
+        # start a new word with no space
+        self.word_markup = ""
+        self.word_render = ""
+        self.space = space
+
+        # we completed a word so return True
+        return l
+
+
+    def appendtoken(self, t):
+        """Append the supplied token to the current word.
+        """
+
+        self.word_markup += t
+        self.word_render += render_token(t)
+
+
+line = GuideLine()
 
 with sys.stdin as f:
     for l in f:
@@ -205,40 +217,54 @@ with sys.stdin as f:
         l = l.rstrip()
 
         if re.match(LITERALLINE_RE, l):
-            writeline()
-            writeliteral(l)
+            p = line.writeline()
+            if p:
+                print(p)
+
+            print(line.writeliteral(l))
+
             continue
 
         # if the line is blank, we complete any line we're building up
         # and write a blank line
         if not l:
-            writeline()
-            writeliteral()
-            space = ""
+            p = line.writeline()
+            if p:
+                print(p)
+
+            print(line.writeliteral())
+
             continue
 
         # go through bits of line
         while l:
             m = re.match(TOKEN_RE, l)
+
             if not m:
-                print(f"Something has gone wrong matching <{l}>!")
-                exit(1)
+                raise AssertionError("something has gone wrong matching"
+                                     " '{l}'")
+
             g = m.groupdict()
             token = g["token"]
             #print(f"TOKEN >>> <{token}>")
             l = g["remainder"]
             #print(f"REMAINDER >>> <{l}>")
 
+            # this token is a space, complete the current word
             if re.match(SPACE_RE, token):
-                completeword()
-                space = token
-                continue
+                p = line.completeword(token)
+                if p:
+                    print(p)
 
-            appendtoken(token)
+            else:
+                line.appendtoken(token)
 
         # end of line completes a word and adds a space
-        if completeword():
-            space = " "
+        p = line.completeword(" ")
+        if p:
+            print(p)
 
 # if there is something in the buffer
-writeline()
+p = line.writeline()
+if p:
+    print(p)
