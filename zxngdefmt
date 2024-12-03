@@ -154,7 +154,7 @@ class GuideLine(object):
         return None
 
 
-    def completeword(self, space=""):
+    def completeword(self, *, space=""):
         """Complete the current word.  If the rendered word would fit on the
         current line, it is just appended.  If, however, it would flow out
         of the right margin, the current line will be completed and a new
@@ -197,34 +197,65 @@ class GuideLine(object):
         self.word_render += render_token(t)
 
 
-line = GuideLine()
+
+class GuideDoc(object):
+    """Class representing an entire NextGuide document.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.lines = []
+        self.current_line = GuideLine()
+
+
+    def print(self):
+        """Print the lines in the current document.
+        """
+
+        for l in self.lines:
+            print(l)
+
+
+    def add_literal_line(self, l):
+        """Add a literal line.
+        """
+
+        p = self.current_line.writeline()
+        if p:
+            self.lines.append(p)
+
+        self.lines.append(l)
+
+
+    def append_token(self, t):
+        self.current_line.appendtoken(t)
+
+    def complete_word(self, *, space=""):
+        p = self.current_line.completeword(space=space)
+        if p:
+            self.lines.append(p)
+
+    def complete_doc(self):
+        p = self.current_line.writeline()
+        if p:
+            self.lines.append(p)
+
+
+doc = GuideDoc()
 
 with sys.stdin as f:
     for l in f:
         # remove any trailing whitespace
         l = l.rstrip()
 
-        if re.match(LITERALLINE_RE, l):
-            p = line.writeline()
-            if p:
-                print(p)
-
-            print(l)
-
+        # if the line is blank or is one that is used literally, just
+        # add that to the document
+        if (l == '') or re.match(LITERALLINE_RE, l):
+            doc.add_literal_line(l)
             continue
 
-        # if the line is blank, we complete any line we're building up
-        # and write a blank line
-        if not l:
-            p = line.writeline()
-            if p:
-                print(p)
-
-            print(l)
-
-            continue
-
-        # go through bits of line
+        # go through the line matching tokens (markup, literal or spaces)
         while l:
             m = re.match(TOKEN_RE, l)
 
@@ -232,27 +263,21 @@ with sys.stdin as f:
                 raise AssertionError("something has gone wrong matching"
                                      " '{l}'")
 
-            g = m.groupdict()
-            token = g["token"]
+            token, l = m.group("token", "remainder")
             #print(f"TOKEN >>> <{token}>")
-            l = g["remainder"]
             #print(f"REMAINDER >>> <{l}>")
 
             # this token is a space, complete the current word
             if re.match(SPACE_RE, token):
-                p = line.completeword(token)
-                if p:
-                    print(p)
+                doc.complete_word(space=token)
 
             else:
-                line.appendtoken(token)
+                doc.append_token(token)
 
         # end of line completes a word and adds a space
-        p = line.completeword(" ")
-        if p:
-            print(p)
+        p = doc.complete_word(space=" ")
 
 # if there is something in the buffer
-p = line.writeline()
-if p:
-    print(p)
+doc.complete_doc()
+
+doc.print()
