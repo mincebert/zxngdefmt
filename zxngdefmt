@@ -229,14 +229,24 @@ class GuideDoc(object):
 
 
     def append_token(self, t):
+        """Append a token to the current word.  This should not be a
+        space token; complete_word() should be used there.
+        """
         self.current_line.appendtoken(t)
 
     def complete_word(self, *, space=""):
+        """Complete a current word and add separating spaces (if
+        supplied).  If this completes a line, it will be rendered into
+        the document and a new line begun.
+        """
         p = self.current_line.completeword(space=space)
         if p:
             self.lines.append(p)
 
     def complete_doc(self):
+        """Finish the entire document.  This will render out of any
+        pending data in the line buffer.
+        """
         p = self.current_line.writeline()
         if p:
             self.lines.append(p)
