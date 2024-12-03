@@ -208,10 +208,10 @@ class GuideLine(object):
 
 
 class GuideNode(object):
-    def __init__(self, node):
+    def __init__(self, name):
         super().__init__()
 
-        self.node = node
+        self.name = name
         self.links = {}
 
         self.lines = []
@@ -219,12 +219,26 @@ class GuideNode(object):
     def setlink(self, link, node):
         """Unconditionally set the link to another node.
         """
-        self.links[link] = node
+        if not node:
+            del self.links[link]
+        else:
+            self.links[link] = node
 
     def setdefaultlink(self, link, node):
         """Set the link to another node only if this link is not yet defined.
         """
-        self.links.setdefault(link, node)
+        if node:
+            self.links.setdefault(link, node)
+
+    def getname(self):
+        """Return the node name.
+        """
+        return self.name
+
+    def getlink(self, link):
+        """Return the link from this node, or None if not defined.
+        """
+        return self.links.get(link)
 
     def appendline(self, l):
         self.lines.append(l)
@@ -232,7 +246,7 @@ class GuideNode(object):
     def print(self):
         """Print the current node.
         """
-        p = ["@node " + self.node]
+        p = ["@node " + self.name]
         for link in ["prev", "next", "toc", "index"]:
             if link in self.links:
                 p.append(f"@{link} {self.links[link]}")
@@ -365,6 +379,34 @@ class GuideDoc(object):
         """Finish the entire document.  This will render out of any
         pending data in the line buffer.
         """
+
+        # fill in missing previous node, toc and index nodes
+        #
+        # prev = whatever the previous node was
+        #
+        # toc = the most recently defined toc
+        #
+        # index = the most recently defined index
+        prev_node = None
+        toc_node = None
+        index_node = None
+        for node in self.nodes:
+            # set missing links for this node
+            node.setdefaultlink("prev", prev_node)
+            node.setdefaultlink("toc", toc_node)
+            node.setdefaultlink("index", index_node)
+            
+            # store the information about this node to use for
+            # subsequent ones, if defined
+            prev_node = node.getname()
+            toc_node = node.getlink("toc")
+            index_node = node.getlink("index")
+
+        next_node = None
+        for node in reversed(self.nodes):
+            node.setdefaultlink("next", next_node)
+            next_node = node.getname()
+
         p = self.current_line.writeline()
         if p:
             self.current_node.appendline(p)
