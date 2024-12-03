@@ -47,6 +47,15 @@ TOKEN_RE = (r"(?P<token>"
             + r')'
             + r"(?P<remainder>.*)")
 
+# matching document-level tokens
+DOC_RE = r"@(title|author|version|copyright|date) .+"
+
+# matching a linked node token (for constructing node links)
+NODE_RE = r"@(?P<link>(node|prev|next|toc|index)) (?P<node>\S+)"
+
+# lines to ignore
+IGNORE_RE = r"@-+"
+
 
 # LITERALLINE_RE = string
 #
@@ -198,6 +207,40 @@ class GuideLine(object):
 
 
 
+class GuideNode(object):
+    def __init__(self, node):
+        super().__init__()
+
+        self.node = node
+        self.links = {}
+
+        self.lines = []
+
+    def setlink(self, link, node):
+        """Unconditionally set the link to another node.
+        """
+        self.links[link] = node
+
+    def setdefaultlink(self, link, node):
+        """Set the link to another node only if this link is not yet defined.
+        """
+        self.links.setdefault(link, node)
+
+    def appendline(self, l):
+        self.lines.append(l)
+
+    def print(self):
+        """Print the current node.
+        """
+        p = ["@node " + self.node]
+        for link in ["prev", "next", "toc", "index"]:
+            if link in self.links:
+                p.append(f"@{link} {self.links[link]}")
+        for l in self.lines:
+            p.append(l)
+        return '\n'.join(p)
+
+
 class GuideDoc(object):
     """Class representing an entire NextGuide document.
     """
@@ -205,7 +248,16 @@ class GuideDoc(object):
     def __init__(self):
         super().__init__()
 
-        self.lines = []
+        # document-level lines (appear before all nodes)
+        self.doc_lines = []
+
+        # list of GuideNodes() making up the doc
+        self.nodes = []
+
+        # the current node (created when '@node ...' is parsed)
+        self.current_node = None
+
+        # current line
         self.current_line = GuideLine()
 
 
@@ -217,16 +269,53 @@ class GuideDoc(object):
             # remove any trailing whitespace
             l = l.rstrip()
 
-            # if the line is blank or is one that is used literally, just
-            # add that to the document
+            #print("LINE -- <", l)
+
+            # skip any lines to ignore
+            if re.match(IGNORE_RE, l):
+                continue
+
+            if re.match(DOC_RE, l):
+                if self.current_node:
+                    raise AssertionError("document-level token in node")
+                self.doc_lines.append(l)
+                continue
+
+            # try and match a node/link token
+            m = re.match(NODE_RE, l)
+            if m:
+                link, node = m.group("link", "node")
+
+                # is this a new node?
+                if link == 'node':
+                    # finish the current line and append it
+                    p = self.current_line.writeline()
+                    if p:
+                        self.current_node.appendline(p)
+
+                    # append the current node, if there is one
+                    if self.current_node:
+                        self.nodes.append(self.current_node)
+
+                    # start a new node
+                    self.current_node = GuideNode(node)
+
+                else:
+                    # set the link for the node we're constructing
+                    self.current_node.setlink(link, node)
+
+                continue
+
+            # if the line is blank or is one that is used literally,
+            # just add that to the document
             if (l == '') or re.match(LITERALLINE_RE, l):
                 # finish the current line and append it
                 p = self.current_line.writeline()
                 if p:
-                    self.lines.append(p)
+                    self.current_node.appendline(p)
 
                 # add the literal line
-                self.lines.append(l)
+                self.current_node.appendline(l)
 
                 continue
 
@@ -246,7 +335,7 @@ class GuideDoc(object):
                 if re.match(SPACE_RE, token):
                     p = self.current_line.completeword(space=token)
                     if p:
-                        self.lines.append(p)
+                        self.current_node.appendline(p)
 
                 else:
                     self.current_line.appendtoken(token)
@@ -254,7 +343,7 @@ class GuideDoc(object):
             # end of line completes a word and adds a space
             p = self.current_line.completeword(space=" ")
             if p:
-                self.lines.append(p)
+                self.current_node.appendline(p)
 
         # if there is something in the buffer
         self.complete_doc()
@@ -264,8 +353,12 @@ class GuideDoc(object):
         """Print the lines in the current document.
         """
 
-        for l in self.lines:
+        for l in self.doc_lines:
             print(l)
+
+        for n in self.nodes:
+            print('@' + ('-' * (LINE_MAXLEN - 1)))
+            print(n.print())
 
 
     def complete_doc(self):
@@ -274,7 +367,7 @@ class GuideDoc(object):
         """
         p = self.current_line.writeline()
         if p:
-            self.lines.append(p)
+            self.current_node.appendline(p)
 
 
 doc = GuideDoc()
