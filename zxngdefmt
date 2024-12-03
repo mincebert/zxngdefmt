@@ -144,26 +144,14 @@ class GuideLine(object):
 
         if self.line_markup:
             l = self.line_markup
+
             self.line_markup = ""
             self.line_render = ""
+            self.space = ""
 
             return l
 
         return None
-
-
-    def writeliteral(self, l=""):
-        """Write a literal line.
-        """
-
-        if self.line_markup or self.word_markup:
-            raise AssertionError("line or word buffers not empty when"
-                                " writing literal line")
-
-        # if we had a space from the previous line, scrap that
-        self.space = ""
-
-        return l
 
 
     def completeword(self, space=""):
@@ -221,7 +209,7 @@ with sys.stdin as f:
             if p:
                 print(p)
 
-            print(line.writeliteral(l))
+            print(l)
 
             continue
 
@@ -232,7 +220,7 @@ with sys.stdin as f:
             if p:
                 print(p)
 
-            print(line.writeliteral())
+            print(l)
 
             continue
 
