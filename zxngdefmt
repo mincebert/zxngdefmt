@@ -209,6 +209,57 @@ class GuideDoc(object):
         self.current_line = GuideLine()
 
 
+    def parse(self, f):
+        """Parse file into document.
+        """
+
+        for l in f:
+            # remove any trailing whitespace
+            l = l.rstrip()
+
+            # if the line is blank or is one that is used literally, just
+            # add that to the document
+            if (l == '') or re.match(LITERALLINE_RE, l):
+                # finish the current line and append it
+                p = self.current_line.writeline()
+                if p:
+                    self.lines.append(p)
+
+                # add the literal line
+                self.lines.append(l)
+
+                continue
+
+            # go through the line matching tokens (markup, literal or spaces)
+            while l:
+                m = re.match(TOKEN_RE, l)
+
+                if not m:
+                    raise AssertionError("something has gone wrong matching"
+                                        " '{l}'")
+
+                token, l = m.group("token", "remainder")
+                #print(f"TOKEN >>> <{token}>")
+                #print(f"REMAINDER >>> <{l}>")
+
+                # this token is a space, complete the current word
+                if re.match(SPACE_RE, token):
+                    p = self.current_line.completeword(space=token)
+                    if p:
+                        self.lines.append(p)
+
+                else:
+                    self.current_line.appendtoken(token)
+
+            # end of line completes a word and adds a space
+            p = self.current_line.completeword(space=" ")
+            if p:
+                self.lines.append(p)
+
+        # if there is something in the buffer
+        self.complete_doc()
+
+
     def print(self):
         """Print the lines in the current document.
         """
@@ -216,32 +267,6 @@ class GuideDoc(object):
         for l in self.lines:
             print(l)
 
-
-    def add_literal_line(self, l):
-        """Add a literal line.
-        """
-
-        p = self.current_line.writeline()
-        if p:
-            self.lines.append(p)
-
-        self.lines.append(l)
-
-
-    def append_token(self, t):
-        """Append a token to the current word.  This should not be a
-        space token; complete_word() should be used there.
-        """
-        self.current_line.appendtoken(t)
-
-    def complete_word(self, *, space=""):
-        """Complete a current word and add separating spaces (if
-        supplied).  If this completes a line, it will be rendered into
-        the document and a new line begun.
-        """
-        p = self.current_line.completeword(space=space)
-        if p:
-            self.lines.append(p)
 
     def complete_doc(self):
         """Finish the entire document.  This will render out of any
@@ -255,39 +280,6 @@ class GuideDoc(object):
 doc = GuideDoc()
 
 with sys.stdin as f:
-    for l in f:
-        # remove any trailing whitespace
-        l = l.rstrip()
-
-        # if the line is blank or is one that is used literally, just
-        # add that to the document
-        if (l == '') or re.match(LITERALLINE_RE, l):
-            doc.add_literal_line(l)
-            continue
-
-        # go through the line matching tokens (markup, literal or spaces)
-        while l:
-            m = re.match(TOKEN_RE, l)
-
-            if not m:
-                raise AssertionError("something has gone wrong matching"
-                                     " '{l}'")
-
-            token, l = m.group("token", "remainder")
-            #print(f"TOKEN >>> <{token}>")
-            #print(f"REMAINDER >>> <{l}>")
-
-            # this token is a space, complete the current word
-            if re.match(SPACE_RE, token):
-                doc.complete_word(space=token)
-
-            else:
-                doc.append_token(token)
-
-        # end of line completes a word and adds a space
-        p = doc.complete_word(space=" ")
-
-# if there is something in the buffer
-doc.complete_doc()
+    doc.parse(f)
 
 doc.print()
