@@ -429,15 +429,25 @@ class GuideDocRaw(object):
     TODO
     """
 
+
     def __init__(self, filename=None):
-        """TODO
+        """Initialise a new raw document object, optionally reading in a
+        source guide file.
         """
+
         super().__init__()
 
+        # initialise the document
         self._cmds = {}
         self._nodes = []
 
-        self.readfile(filename)
+        # initialise a list of warnings encountered when building the
+        # document
+        self._warnings = []
+
+        # if a filename was supplied, read it
+        if filename:
+            self.readfile(filename)
 
 
     def readfile(self, filename):
@@ -462,8 +472,9 @@ class GuideDocRaw(object):
                 m = re.match(DOC_CMDS_RE, l)
                 if m:
                     if current_node:
-                        raise ValueError(
-                                  "document token inside node at line: " + l)
+                        self._warnings.append("node: @" + current_node.name
+                                              + " has document token: " + l
+                                              + " - ignored")
 
                     self._cmds[m.group("cmd")] = m.group("value")
                     continue
@@ -486,6 +497,14 @@ class GuideDocRaw(object):
                 continue
 
 
+    def getwarnings(self):
+        """Returns the list of warnings encountered when building the
+        document.  The list will be empty if there were no warnings.
+        """
+
+        return self._warnings
+
+
     def print(self):
         """TODO - just print the document and nodes raw
         """
@@ -497,6 +516,7 @@ class GuideDocRaw(object):
         for n in self._nodes:
             print()
             print(n.write())
+
 
 
 class GuideDoc(object):
@@ -657,6 +677,12 @@ class GuideDoc(object):
 
 
 rawdoc = GuideDocRaw("NextBASIC.gde")
+
+w = rawdoc.getwarnings()
+if w:
+    print("Warnings:")
+    for w1 in w:
+        print('-', w1)
 
 rawdoc.print()
 
