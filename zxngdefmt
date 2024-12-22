@@ -471,12 +471,13 @@ class GuideDocRaw(object):
                 # try to match document-level commands
                 m = re.match(DOC_CMDS_RE, l)
                 if m:
-                    if current_node:
+                    if not current_node:
+                        self._cmds[m.group("cmd")] = m.group("value")
+                    else:
                         self._warnings.append("node: @" + current_node.name
                                               + " has document token: " + l
                                               + " - ignored")
 
-                    self._cmds[m.group("cmd")] = m.group("value")
                     continue
 
                 m = re.match(NODE_CMDS_RE, l)
@@ -495,6 +496,64 @@ class GuideDocRaw(object):
 
                 current_node.appendline(l)
                 continue
+
+
+    def setdefaultlinks(self):
+        """Complete any missing data for inter-node links using
+        defaults:
+
+        - prev = the previous node in the document
+
+        - next = the next node in the document
+
+        - toc = the most recently-defined 'toc' entry
+        """
+
+        # fill in missing 'previous' and 'toc' (contents) links:
+        prev_node = None
+        toc_node = None
+        for node in self._nodes:
+            # set missing links for this node
+            node.setdefaultlink("prev", prev_node)
+            node.setdefaultlink("toc", toc_node)
+
+            # store the information about this node to use in subsequent
+            # ones, if required
+            prev_node = node.name
+            toc_node = node.getlink("toc")
+
+        # fill in missing 'next' links
+        next_node = None
+        for node in reversed(self._nodes):
+            node.setdefaultlink("next", next_node)
+            next_node = node.name
+
+
+    def checklinks(self):
+        """Check links in the document and generate warnings if any are
+        broken (to nodes which do not exist).
+        """
+
+        def checknodallink(link):
+            """Check a particular nodal link exists.
+            """
+
+            link_name = node.getlink(link)
+            if link_name and all(node.name != link_name for node in self._nodes):
+                self._warnings.append(
+                    f"node: @{node.name} link: {link} to non-existent"
+                    f" node: @{link_name}")
+
+        # check document-level links
+        index = self._cmds.get("index")
+        if index and all(node.name != index for node in self._nodes):
+            self._warnings.append(f"index link to non-existent node: @{index}")
+
+        # check node-level links
+        for node in self._nodes:
+            checknodallink("prev")
+            checknodallink("next")
+            checknodallink("toc")
 
 
     def getwarnings(self):
@@ -677,6 +736,9 @@ class GuideDoc(object):
 
 
 rawdoc = GuideDocRaw("NextBASIC.gde")
+
+rawdoc.setdefaultlinks()
+rawdoc.checklinks()
 
 w = rawdoc.getwarnings()
 if w:
