@@ -139,9 +139,25 @@ def render_token(t):
     return t
 
 
+
 class GuideLine(object):
+    """This class represents a line being built in a NextGuide, handling
+    wrapping of lines at the maximum length (screen width).
+
+    It allows a line to be assembled with appendtoken() for
+    non-whitespace tokens.
+
+    When a word (a sequence of non-whitespace tokens) is completed with
+    a whitespace token, completeword() is called to determine if that
+    word will fit on the current line.  If yes, it will be appended; if
+    no, the line will be completed and new one begun with the word.
+    """
+
     def __init__(self):
         super().__init__()
+
+        # initialise the current line, word and precedind whitespace to
+        # empty
 
         self.line_markup = ""
         self.line_render = ""
@@ -149,63 +165,82 @@ class GuideLine(object):
         self.word_markup = ""
         self.word_render = ""
 
-        self.space = ""
+        self.pre_space = ""
 
 
-    def writeline(self):
-        """If there is anything in it, write the current line buffer out and
-        clear it, ready for the next line.
+    def write(self):
+        """If there is anything in it, write the current line buffer out
+        and clear it, ready for the next line.
         """
 
+        # if there is anything in the current line, store it to return
+        # and clear them out, ready for the next line
         if self.line_markup:
-            l = self.line_markup
+            line = self.line_markup
 
             self.line_markup = ""
             self.line_render = ""
-            self.space = ""
+            self.pre_space = ""
 
-            return l
+            return line
 
+        # the current line is empty - just return None
         return None
 
 
     def completeword(self, *, space=""):
-        """Complete the current word.  If the rendered word would fit on the
-        current line, it is just appended.  If, however, it would flow out
-        of the right margin, the current line will be completed and a new
-        line begun with the current word.
+        """Complete the current word, with the specified block of
+        whitespace following it.
 
-        Returns a completed line, if one was, or None.
+        If the rendered word, and the stored whitespace from the
+        previous call to completeword(), would fit on the line currently
+        being built, it is appended and the whitespace supplied here
+        will be stored, ready for the next call to completeword().
+
+        If the stored whitespace and word would NOT fit on the fit on
+        the current line, the line so far is returned and the stored
+        whitespace is discarded (as it is between lines).  A new line is
+        begun with a word, and the whitespace supplied here stored.
         """
 
-        # if no word or line, return None as we didn't actually complete a word
+        # if no line or word, we have nothing to complete nor return, so
+        # just return None
         if (not self.line_render) and (not self.word_render):
             return None
 
-        l = None
-        if len(self.line_render + self.space + self.word_render) > LINE_MAXLEN:
-            l = self.writeline()
+        # start with no completed line to return and check if the stored
+        # space and rendered word would fit on this line
+        line = None
+        if (len(self.line_render + self.pre_space + self.word_render)
+                > LINE_MAXLEN):
+
+            # adding the current word would make it over length - render it
+            line = self.write()
+
             # don't add the space, as we're beginning a new line
 
         else:
-            # add the space, as we're continuing the line
-            self.line_markup += self.space
-            self.line_render += self.space
+            # the current word will fit on this line - add the space, as
+            # we're continuing the line
+            self.line_markup += self.pre_space
+            self.line_render += self.pre_space
 
+        # add the current word to the line (either freshly cleared, or
+        # continuing the current one)
         self.line_markup += self.word_markup
         self.line_render += self.word_render
 
-        # start a new word with no space
+        # start a new word with the supplied previous space
         self.word_markup = ""
         self.word_render = ""
-        self.space = space
+        self.pre_space = space
 
         # we completed a word so return True
-        return l
+        return line
 
 
     def appendtoken(self, t):
-        """Append the supplied token to the current word.
+        """Append the supplied non-whitespace token to the current word.
         """
 
         self.word_markup += t
@@ -214,51 +249,83 @@ class GuideLine(object):
 
 
 class GuideNode(object):
+    """A node (page in a NextGuide) document.
+    """
+
+
     def __init__(self, name):
+        """Initialise a new node with the specified name.
+        """
+
         super().__init__()
 
+        # initialise the current node with the specified name
         self.name = name
+
+        # no links to other documents yet
         self.links = {}
 
+        # no lines yet
         self.lines = []
 
+
     def setlink(self, link, node):
-        """Unconditionally set the link to another node.
+        """Unconditionally set the link to another node.  This is called
+        when a node explicitly sets the link.
         """
+
         if not node:
             del self.links[link]
         else:
             self.links[link] = node
 
+
     def setdefaultlink(self, link, node):
-        """Set the link to another node only if this link is not yet defined.
+        """Set the link to another node only if this link is not yet
+        defined.  This called when a node is completed, to fill in any
+        missing links.
         """
         if node:
             self.links.setdefault(link, node)
 
+
     def getname(self):
-        """Return the node name.
+        """Return the name of this node.
         """
+
         return self.name
 
+
     def getlink(self, link):
-        """Return the link from this node, or None if not defined.
+        """Return the link to the specified target from this node, or
+        None if it is not defined.
         """
+
         return self.links.get(link)
 
+
     def appendline(self, l):
+        """Add a line to the current node.
+        """
+
         self.lines.append(l)
 
-    def print(self):
-        """Print the current node.
+
+    def write(self):
+        """Render the current node.
         """
-        p = ["@node " + self.name]
+
+        lines = ["@node " + self.name]
+
         for link in ["prev", "next", "toc", "index"]:
             if link in self.links:
-                p.append(f"@{link} {self.links[link]}")
+                lines.append(f"@{link} {self.links[link]}")
+
         for l in self.lines:
-            p.append(l)
-        return '\n'.join(p)
+            lines.append(l)
+
+        return '\n'.join(lines)
+
 
 
 class GuideDoc(object):
@@ -309,7 +376,7 @@ class GuideDoc(object):
                 # is this a new node?
                 if link == 'node':
                     # finish the current line and append it
-                    p = self.current_line.writeline()
+                    p = self.current_line.write()
                     if p:
                         self.current_node.appendline(p)
 
@@ -330,7 +397,7 @@ class GuideDoc(object):
             # just add that to the document
             if (l == '') or re.match(LITERALLINE_RE, l):
                 # finish the current line and append it
-                p = self.current_line.writeline()
+                p = self.current_line.write()
                 if p:
                     self.current_node.appendline(p)
 
@@ -378,7 +445,7 @@ class GuideDoc(object):
 
         for n in self.nodes:
             print('@' + ('-' * (LINE_MAXLEN - 1)))
-            print(n.print())
+            print(n.write())
 
 
     def complete_doc(self):
@@ -401,7 +468,7 @@ class GuideDoc(object):
             node.setdefaultlink("prev", prev_node)
             node.setdefaultlink("toc", toc_node)
             node.setdefaultlink("index", index_node)
-            
+
             # store the information about this node to use for
             # subsequent ones, if defined
             prev_node = node.getname()
@@ -413,7 +480,7 @@ class GuideDoc(object):
             node.setdefaultlink("next", next_node)
             next_node = node.getname()
 
-        p = self.current_line.writeline()
+        p = self.current_line.write()
         if p:
             self.current_node.appendline(p)
 
