@@ -190,7 +190,8 @@ class GuideLine(object):
 
     def completeword(self, *, space=""):
         """Complete the current word, with the specified block of
-        whitespace following it.
+        whitespace following it.  If this finishes the current line,
+        that is returned.
 
         If the rendered word, and the stored whitespace from the
         previous call to completeword(), would fit on the line currently
@@ -235,7 +236,8 @@ class GuideLine(object):
         self._word_render = ""
         self._pre_space = space
 
-        # we completed a word so return True
+        # return a the compeleted line, if we did that, or None if we
+        # are still working on it
         return line
 
 
