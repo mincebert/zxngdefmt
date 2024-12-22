@@ -445,9 +445,12 @@ class GuideDocRaw(object):
         # document
         self._warnings = []
 
-        # if a filename was supplied, read it
+        # if a filename was supplied, read it, set the default links and
+        # check it
         if filename:
             self.readfile(filename)
+            self.checklinks()
+            self.setdefaultlinks()
 
 
     def readfile(self, filename):
@@ -474,9 +477,9 @@ class GuideDocRaw(object):
                     if not current_node:
                         self._cmds[m.group("cmd")] = m.group("value")
                     else:
-                        self._warnings.append("node: @" + current_node.name
-                                              + " has document token: " + l
-                                              + " - ignored")
+                        self._warnings.append(
+                            f"node: @{current_node.name} has document"
+                            f"token: {l} - ignored")
 
                     continue
 
@@ -539,7 +542,9 @@ class GuideDocRaw(object):
             """
 
             link_name = node.getlink(link)
-            if link_name and all(node.name != link_name for node in self._nodes):
+            if (link_name
+                and all(node.name != link_name for node in self._nodes)):
+
                 self._warnings.append(
                     f"node: @{node.name} link: {link} to non-existent"
                     f" node: @{link_name}")
@@ -736,9 +741,6 @@ class GuideDoc(object):
 
 
 rawdoc = GuideDocRaw("NextBASIC.gde")
-
-rawdoc.setdefaultlinks()
-rawdoc.checklinks()
 
 w = rawdoc.getwarnings()
 if w:
