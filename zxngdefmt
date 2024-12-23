@@ -220,7 +220,7 @@ class GuideNode(object):
         self._lines.append(l)
 
 
-    def format(self):
+    def write(self):
         # the current line being assembled
         line_markup = ""
         line_render = ""
@@ -336,25 +336,6 @@ class GuideNode(object):
         writeline()
 
         return output
-
-
-    def write(self):
-        """Render the current node.
-
-        TODO -- replace with getlines() or something as raw data will
-        need rendering.
-        """
-
-        lines = ["@node " + self.name]
-
-        for link in ["prev", "next", "toc", "index"]:
-            if link in self._links:
-                lines.append(f"@{link} {self._links[link]}")
-
-        for l in self._lines:
-            lines.append(l)
-
-        return '\n'.join(lines)
 
 
 
@@ -522,7 +503,7 @@ class GuideDoc(object):
         for n in self._nodes:
             print()
             print('@' + ('-' * (LINE_MAXLEN - 1)))
-            for l in n.format():
+            for l in n.write():
                 print(l)
 
 
