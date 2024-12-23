@@ -84,7 +84,7 @@ IGNORE_RE = r"@(-+|rem\s)"
 # LITERALLINE_RE = string
 #
 # Regular expression to match lines which must be included in the output
-# guide literally (i.e. without reformatting).  Includes:
+# guide literally (i.e. without reformatting).
 
 LITERALLINE_RE = (
     r'('
@@ -95,16 +95,11 @@ LITERALLINE_RE = (
     # lines with 3 or more consecutive spaces
     + r"|.+\s{3,}"
 
-    # lines beginning with '@' but not '@@', '@{' or '@(' (copyright) -
-    # these indicate node names, lines to adjacent pages or
-    # TOC/index pages
-    + r"|@[^{@()]"
+    # lines with headers
+    + r"|.*@{h\d}"
 
     # lines with centred or right-justified text
     + r"|@{[cr]}"
-
-    # lines with headers
-    + r"|.*@{h\d}"
 
     # lines consisting solely of a single link
     + r'|' + LINK_RE + r'$'
