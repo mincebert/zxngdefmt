@@ -60,7 +60,7 @@ TOKEN_RE = (r"(?P<token>"
             + r'|' + ATTR_RE
             + r'|' + LITERALTOKEN_RE
             + r'|' + WORD_RE
-            + r'|' + SPACE_RE
+            + r"|(?P<space>" + SPACE_RE + ")"
             + r')'
             + r"(?P<remainder>.*)")
 
@@ -128,7 +128,7 @@ LINE_MAXLEN = 78
 
 
 
-def render_token(t):
+def rendertoken(t):
     """Render a NextGuide token (which could be markup, or a literal
     word, or block of spaces) into the text that would be displayed on
     screen (ignoring formatting).  This is used to work out the length
@@ -330,6 +330,124 @@ class GuideNodeRaw(object):
         self._lines.append(l)
 
 
+    def format(self):
+        # the current line being assembled
+        line_markup = ""
+        line_render = ""
+
+        # any spaces
+        pre_space = ""
+
+        word_markup = ""
+        word_render = ""
+
+
+        # formatted lines in the output
+        output = ["@node " + self.name]
+
+        for link in ["prev", "next", "toc", "index"]:
+            if link in self._links:
+                output.append(f"@{link} {self._links[link]}")
+
+
+        def writeline():
+            nonlocal output, line_markup, line_render, pre_space
+
+            if line_markup:
+                output.append(line_markup)
+
+                line_markup = ""
+                line_render = ""
+
+                pre_space = ""
+
+
+        def completeword(space=""):
+            """TODO
+            """
+
+            nonlocal line_markup, line_render, pre_space, word_markup, word_render
+
+            # if no line or word, we have nothing to complete nor return, so
+            # we're done
+            if (not line_render) and (not word_render):
+                return
+
+            # start with no completed line to return and check if the stored
+            # space and rendered word would fit on this line
+            if (len(line_render + pre_space + word_render) > LINE_MAXLEN):
+                # adding the current word would make it over length - render it
+                writeline()
+
+                # don't add the space, as we're beginning a new line
+
+            else:
+                # the current word will fit on this line - add the space, as
+                # we're continuing the line
+                line_markup += pre_space
+                line_render += pre_space
+
+            # add the current word to the line (either freshly cleared, or
+            # continuing the current one)
+            line_markup += word_markup
+            line_render += word_render
+
+            # start a new word with the supplied previous space
+            pre_space = space
+            word_markup = ""
+            word_render = ""
+
+
+        def appendtoken(t):
+            """TODO
+            """
+
+            nonlocal word_markup, word_render
+
+            word_markup += t
+            word_render += rendertoken(t)
+
+
+        for line in self._lines:
+            # if the line is blank or is one that is used literally,
+            # just add that to the document
+            if (line == '') or re.match(LITERALLINE_RE, line):
+                # finish the current line and append it
+                writeline()
+
+                # add the literal line
+                output.append(line)
+
+                continue
+
+            # go through the line matching tokens (markup, literal or spaces)
+            remainder = line
+            while remainder:
+                m = re.match(TOKEN_RE, remainder)
+
+                if not m:
+                    raise AssertionError(
+                        "failed to match next token in: " + remainder)
+
+                token, remainder = m.group("token", "remainder")
+                #print(f"TOKEN >>> <{token}>")
+                #print(f"REMAINDER >>> <{l}>")
+
+                # this token is a space, complete the current word
+                if m.group("space"):
+                    completeword(space=token)
+                else:
+                    appendtoken(token)
+
+            # end of line completes a word and adds a space
+            completeword(space=" ")
+
+        # if there is something in the buffer
+        writeline()
+
+        return output
+
+
     def write(self):
         """Render the current node.
 
@@ -341,7 +459,7 @@ class GuideNodeRaw(object):
 
         for link in ["prev", "next", "toc", "index"]:
             if link in self._links:
-                lines.append(f"---> @{link} {self._links[link]}")
+                lines.append(f"@{link} {self._links[link]}")
 
         for l in self._lines:
             lines.append(l)
@@ -471,7 +589,7 @@ class GuideDocRaw(object):
                 if re.match(IGNORE_RE, l):
                     continue
 
-                # try to match document-level commands
+                # match document-level commands
                 m = re.match(DOC_CMDS_RE, l)
                 if m:
                     if not current_node:
@@ -483,22 +601,29 @@ class GuideDocRaw(object):
 
                     continue
 
+                # match the start of a new node
                 m = re.match(NODE_CMDS_RE, l)
                 if m:
+                    # append the current node, if we have one
                     if current_node:
                         self._nodes.append(current_node)
+
+                    # start a new node
                     current_node = GuideNodeRaw(m.group("name"))
                     continue
 
+                # match node-level commands
                 m = re.match(NODAL_CMDS_RE, l)
                 if m:
                     current_node.setlink(*m.group("link", "name"))
                     continue
 
-                # a line of text in the node
-
+                # anything else is a line of markup data in the node
                 current_node.appendline(l)
-                continue
+
+        # if we have a node we're assembling, append that
+        if current_node:
+            self._nodes.append(current_node)
 
 
     def setdefaultlinks(self):
@@ -579,7 +704,9 @@ class GuideDocRaw(object):
 
         for n in self._nodes:
             print()
-            print(n.write())
+            print('@' + ('-' * (LINE_MAXLEN - 1)))
+            for l in n.format():
+                print(l)
 
 
 
