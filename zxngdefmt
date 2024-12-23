@@ -341,7 +341,7 @@ class GuideDoc(object):
     """
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filename):
         """Initialise a new raw document object, optionally reading in a
         source guide file.
         """
@@ -356,12 +356,13 @@ class GuideDoc(object):
         # document
         self._warnings = []
 
-        # if a filename was supplied, read it, set the default links and
-        # check it
-        if filename:
-            self.readfile(filename)
-            self.checklinks()
-            self.setdefaultlinks()
+        # store the name of this document
+        self.name = filename
+
+        # read the file, set the default links and check it
+        self.readfile(filename)
+        self.checklinks()
+        self.setdefaultlinks()
 
 
     def readfile(self, filename):
@@ -479,6 +480,14 @@ class GuideDoc(object):
             checknodallink("toc")
 
 
+    def getnodenames(self):
+        """Return a list containing the names of all the nodes in the
+        document.
+        """
+
+        return [ node.name for node in self._nodes ]
+
+
     def getwarnings(self):
         """Returns the list of warnings encountered when building the
         document.  The list will be empty if there were no warnings.
@@ -490,6 +499,7 @@ class GuideDoc(object):
     def print(self):
         """TODO - just print the document and nodes raw
         """
+
         for c in DOC_CMDS:
             if c in self._cmds:
                 print(f"@{c}"
@@ -512,3 +522,5 @@ if w:
         print('-', w1)
 
 doc.print()
+
+print(doc.getnodenames())
