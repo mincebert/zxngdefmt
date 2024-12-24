@@ -303,7 +303,40 @@ class GuideNode(object):
             word_render += rendertoken(t)
 
 
+        def fixlink(m):
+            """This function is passed as the parameter for 'repl' to
+            the re.sub() function, to add the 'Document/' prefix to a
+            link target, if it is in another document in the set.
+
+            Warnings will also be generated if a link target is does not
+            exist.
+            """
+
+            text, target = m.group("link_text", "link_target")
+
+            # if the link is local (not to another document) ...
+            if '/' not in target:
+                # ... and the target is a node in the set
+                if target in node_docs:
+                    if node_docs[target] != doc_name:
+                        target = node_docs[target] + '/' + target
+
+                # ... the target is unknown - generate a warning
+                else:
+                    self._warnings.append(
+                        f"link: '{text}' target: @{target} does not exist")
+
+            # return the (possibly rewritten) link command
+            return '@{"' + text + '" LINK ' + target + '}'
+
+
         for line in self._lines:
+            # if a link is to a node in another document in the set,
+            # prefix the link with 'Document/'
+            #
+            # this will also report on links targets which don't exist
+            line = re.sub(LINK_RE, fixlink, line)
+
             # if the line is blank or is one that is used literally,
             # just add that to the document
             if (line == '') or re.match(LITERALLINE_RE, line):
@@ -331,22 +364,6 @@ class GuideNode(object):
                 if m.group("space"):
                     # token is a space, complete the current word
                     completeword(space=token)
-
-                elif m.group("link_text"):
-                    # token is a link - potentially change the target to
-                    # include the document prefix
-
-                    text, target = m.group("link_text", "link_target")
-
-                    if target in node_docs:
-                        if node_docs[target] != doc_name:
-                            target = node_docs[target] + '/' + target
-
-                    else:
-                        self._warnings.append(
-                            f"link: '{text}' target: @{target} does not exist")
-
-                    appendtoken('@{"' + text + '" LINK ' + target + '}')
 
                 else:
                     # token is not a space - add it
