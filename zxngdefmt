@@ -357,12 +357,32 @@ class GuideDoc(object):
         self._warnings = []
 
         # store the name of this document
-        self.name = filename
+        self.setname(filename)
 
         # read the file, set the default links and check it
         self.readfile(filename)
         self.checklinks()
         self.setdefaultlinks()
+
+
+    def setname(self, name):
+        """Sets the name of the guide.  This will 'normalise' the
+        supplied name, removing '.gde' from the end, if it is present;
+        if not, the complete name will be stored.
+        """
+
+        if name.endswith(".gde"):
+            self._name = name[:-4]
+        else:
+            self._name = name
+
+
+    def getname(self):
+        """Return the name of the guide for use as the document part of
+        links from other guides.
+        """
+
+        return self._name
 
 
     def readfile(self, filename):
@@ -513,14 +533,85 @@ class GuideDoc(object):
 
 
 
-doc = GuideDoc("NextBASIC.gde")
+class GuideSet(object):
+    """Handles a set of GuideDocs with interconnecting links.
 
-w = doc.getwarnings()
+    TODO
+    """
+
+    def __init__(self, filenames):
+        super().__init__()
+
+        # initialise a list of documents in the set
+        self._docs = []
+
+        # initialise a dictionary mapping nodes to docs
+        self._nodes = {}
+
+        # initialise list of warnings at the set level (warnings from
+        # individual documents are stored there and concatenated, when
+        # requests by getwarnings())
+        self._warnings = []
+
+        self.readfiles(filenames)
+
+
+    def readfiles(self, filenames):
+        # go through the list of filenames and read a document from each one
+        for filename in filenames:
+            doc = GuideDoc(filename)
+
+            # add this document to the list of documents in the set
+            self._docs.append(doc)
+
+            # go through the nodes in this new document
+            for node_name in doc.getnodenames():
+                # if a node with this name already exists, record a
+                # warning and skip adding it
+                if node_name in self._nodes:
+                    self._warnings.append(
+                        f"document: {doc.getname()} node:"
+                        f" @{node_name} same name already exists in"
+                        f" document: {self._nodes[node_name]} -"
+                        f" ignoring")
+                    continue
+
+                # record this node as in this document
+                self._nodes[node_name] = doc.getname()
+
+
+    def getwarnings(self):
+        """Return all the warnings from the set.
+
+        This will include set-level warnings (e.g. a node name clashes
+        between two documents).  It will also include all the
+        document-level warnings, which will be prefixed with the name
+        of the document.
+        """
+
+        warnings = self._warnings.copy()
+
+        for doc in self._docs:
+            warnings.extend([ f"document: {doc.getname()} {warning}"
+                                  for warning in doc.getwarnings() ])
+
+        return warnings
+
+
+    def print(self):
+        for doc in self._docs:
+            print(f"=> DOC: {doc.getname()}")
+            doc.print()
+
+
+guide_set = GuideSet(["NextBASIC.gde", "NextBASIC_pt2.gde"])
+
+w = guide_set.getwarnings()
 if w:
-    print("Warnings:")
+    print("Warnings:", file=sys.stderr)
     for w1 in w:
-        print('-', w1)
+        print('-', w1, file=sys.stderr)
 
-doc.print()
+guide_set.print()
 
-print(doc.getnodenames())
+print(guide_set._nodes)
