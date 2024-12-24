@@ -40,7 +40,7 @@ DOC_CMDS = [
 
 
 # link to another node
-LINK_RE = r'@{ *"(?P<text>[^"]+)" LINK (?P<target>[^ }]+) *}'
+LINK_RE = r'@{ *"(?P<link_text>[^"]+)" LINK (?P<link_target>[^ }]+) *}'
 
 # formatting attribute
 ATTR_RE = r"@{\w+}"
@@ -134,7 +134,7 @@ def rendertoken(t):
     # if the token is a link, use the displayed text field
     m = re.match(LINK_RE, t)
     if m:
-        return m["text"]
+        return m["link_text"]
 
     # if the token is a literal character, convert that to the displayed
     # character
@@ -181,6 +181,9 @@ class GuideNode(object):
         # no lines yet
         self._lines = []
 
+        # initialise list of warnings encountered
+        self._warnings = []
+
 
     def setlink(self, link, node):
         """Unconditionally set the link to another node.  This is used
@@ -208,6 +211,13 @@ class GuideNode(object):
         return self._links.get(link)
 
 
+    def getwarnings(self):
+        """Return a list of warnings about this node.
+        """
+
+        return self._warnings
+
+
     def appendline(self, l):
         """Add a raw line to the current node.
         """
@@ -215,7 +225,7 @@ class GuideNode(object):
         self._lines.append(l)
 
 
-    def write(self):
+    def write(self, *, doc_name=None, node_docs={}):
         # the current line being assembled
         line_markup = ""
         line_render = ""
@@ -318,10 +328,26 @@ class GuideNode(object):
                 #print(f"TOKEN >>> <{token}>")
                 #print(f"REMAINDER >>> <{l}>")
 
-                # this token is a space, complete the current word
                 if m.group("space"):
+                    # token is a space, complete the current word
                     completeword(space=token)
+
+                elif m.group("link_text"):
+                    # token is a link - potentially change the target to
+                    # include the document prefix
+
+                    text, target = m.group("link_text", "link_target")
+
+                    if target in node_docs:
+                        if node_docs[target] != doc_name:
+                            target = node_docs[target] + '/' + target
+
+                    else:
+                        self._warnings.append(
+                            f"link: '{text}' target: @{target} does not exist")
+
                 else:
+                    # token is not a space - add it
                     appendtoken(token)
 
             # end of line completes a word and adds a space
@@ -513,10 +539,16 @@ class GuideDoc(object):
         document.  The list will be empty if there were no warnings.
         """
 
-        return self._warnings
+        warnings = self._warnings.copy()
+
+        for node in self._nodes:
+            warnings.extend([ f"node: @{node.name} {warning}"
+                                  for warning in node.getwarnings() ])
+
+        return warnings
 
 
-    def print(self):
+    def print(self, *, node_docs={}):
         """TODO - just print the document and nodes raw
         """
 
@@ -528,7 +560,7 @@ class GuideDoc(object):
         for n in self._nodes:
             print()
             print('@' + ('-' * (LINE_MAXLEN - 1)))
-            for l in n.write():
+            for l in n.write(doc_name=self.getname(), node_docs=node_docs):
                 print(l)
 
 
@@ -601,10 +633,12 @@ class GuideSet(object):
     def print(self):
         for doc in self._docs:
             print(f"=> DOC: {doc.getname()}")
-            doc.print()
+            doc.print(node_docs=self._nodes)
 
 
 guide_set = GuideSet(["NextBASIC.gde", "NextBASIC_pt2.gde"])
+
+guide_set.print()
 
 w = guide_set.getwarnings()
 if w:
@@ -612,6 +646,5 @@ if w:
     for w1 in w:
         print('-', w1, file=sys.stderr)
 
-guide_set.print()
-
-print(guide_set._nodes)
+print("Nodes:", file=sys.stderr)
+print(guide_set._nodes, file=sys.stderr)
