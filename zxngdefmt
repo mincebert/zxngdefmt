@@ -40,19 +40,19 @@ DOC_CMDS = [
 
 
 # link to another node
-LINK_RE = r'@{ *"(?P<text>[^"]+)" LINK [^ }]+ *}'
+LINK_RE = r'@{ *"(?P<text>[^"]+)" LINK (?P<target>[^ }]+) *}'
 
 # formatting attribute
 ATTR_RE = r"@{\w+}"
 
 # literal characters
-LITERALTOKEN_RE = "@(?P<char>[^{])"
+LITERALTOKEN_RE = r"@(?P<char>[^{])"
 
 # plain (unformatted) word (as opposed to markup)
-WORD_RE = "[^@ ]+"
+WORD_RE = r"[^@ ]+"
 
 # one or more spaces
-SPACE_RE = " +"
+SPACE_RE = r"(?P<space> +)"
 
 # match any type of markup token or word or block of spaces
 TOKEN_RE = (r"(?P<token>"
@@ -60,7 +60,7 @@ TOKEN_RE = (r"(?P<token>"
             + r'|' + ATTR_RE
             + r'|' + LITERALTOKEN_RE
             + r'|' + WORD_RE
-            + r"|(?P<space>" + SPACE_RE + ")"
+            + r'|' + SPACE_RE
             + r')'
             + r"(?P<remainder>.*)")
 
