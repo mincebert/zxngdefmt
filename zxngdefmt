@@ -211,6 +211,13 @@ class GuideNode(object):
         return self._links.get(link)
 
 
+    def addwarning(self, warning):
+        """Add a warning to the list of warnings about this node.
+        """
+
+        self._warnings.append(warning)
+
+
     def getwarnings(self):
         """Return a list of warnings about this node.
         """
@@ -454,9 +461,8 @@ class GuideDoc(object):
                     if not current_node:
                         self._cmds[m.group("cmd")] = m.group("value")
                     else:
-                        self._warnings.append(
-                            f"node: @{current_node.name} has document"
-                            f"token: {l} - ignored")
+                        current_node.addwarning(
+                            f"document token: '{l}' in node - ignored")
 
                     continue
 
