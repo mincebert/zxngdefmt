@@ -326,7 +326,7 @@ class GuideNode(object):
 
                 token, remainder = m.group("token", "remainder")
                 #print(f"TOKEN >>> <{token}>")
-                #print(f"REMAINDER >>> <{l}>")
+                #print(f"REMAINDER >>> <{remainder}>")
 
                 if m.group("space"):
                     # token is a space, complete the current word
@@ -345,6 +345,8 @@ class GuideNode(object):
                     else:
                         self._warnings.append(
                             f"link: '{text}' target: @{target} does not exist")
+
+                    appendtoken('@{"' + text + '" LINK ' + target + '}')
 
                 else:
                     # token is not a space - add it
