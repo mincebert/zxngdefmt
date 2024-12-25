@@ -108,14 +108,8 @@ LITERALLINE_RE = (
 
 
 # maximum length for a single line in the output guide
-#
-# we lower this to 78 as there is a bug in NextGuide when links end at
-# column 79 or greater; ideally we would detect those as a special, but
-# that's something for later
-#
-# https://gitlab.com/thesmog358/tbblue/-/issues/127
 
-LINE_MAXLEN = 78
+LINE_MAXLEN = 80
 
 
 
