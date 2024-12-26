@@ -160,41 +160,51 @@ def rendertoken(t):
 
 
 
-class GuideIndexEntry(object):
+class GuideIndex(object):
     """TODO
     """
 
 
-    def __init__(self, line):
+    def __init__(self):
         super().__init__()
 
+        self._terms = {}
+
+
+    def parse(self, line):
         m = re.match(INDEX_RE, line)
         if not m:
             raise ValueError("cannot parse link from line: " + line)
 
-        term_text, term_target, static_text, refs = (
+        link_text, link_target, static_text, refs = (
             m.group("link_text", "link_target", "static_text", "remainder"))
 
-        self.term_text = (term_text or static_text).strip()
-        self.term_target = term_target
+        term = (link_text or static_text).strip()
 
-        self.refs = {}
+        refs_dict = {}
         while refs:
             m = re.match(INDEX_REF_RE, refs)
             if not m:
                 break
             ref_text, ref_target, refs = (
                 m.group("link_text", "link_target", "remainder"))
-            self.refs[ref_text.strip()] = ref_target
+            refs_dict[ref_text.strip()] = ref_target
 
-
-    def __repr__(self):
-        return f'GuideIndexEntry({self.term_text})'
+        self._terms[term] = { "target": link_target, "refs": refs_dict }
 
 
     def __str__(self):
-        return (f"{self.term_text} : {self.term_target} => "
-                + ", ".join(f"{r} : {self.refs[r]}" for r in sorted(self.refs)))
+        s = []
+
+        for term_name in self._terms:
+            term = self._terms[term_name]
+            s.append(f"{term_name}" + ((" : " + term["target"]) if term["target"] is not None else "") + " =>")
+            for r in sorted(term["refs"]):
+                ref = term["refs"][r]
+                s.append(f"  {r} : {ref}")
+
+        return '\n'.join(s)
+
 
 
 class GuideNode(object):
@@ -770,6 +780,12 @@ if w:
     for w1 in w:
         print('-', w1, file=sys.stderr)
 
-s = r' @{b}ERASE@{ub}           @{" ERASE (file) " LINK ERASE_FILE}, @{" ERASE (lines) " LINK ERASE_LINES}'
+i = GuideIndex()
 
-print(GuideIndexEntry(s), file=sys.stderr)
+i.parse(r' @{b}ERASE@{ub}           @{" ERASE (file) " LINK ERASE_FILE}, @{" ERASE (lines) " LINK ERASE_LINES}')
+
+i.parse(r' @{b}ERASE@{ub}           @{" ERASE (cheese) " LINK ERASE_CHEESE}')
+
+i.parse(r' @{b}BANANA@{ub}           @{" PEEL " LINK PEEL}')
+
+print(i, file=sys.stderr)
