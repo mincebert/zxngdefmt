@@ -5,10 +5,22 @@
 import re
 
 from .token import (
-    INDEX_RE,
-    INDEX_REF_RE,
+    LINK_RE,
     renderstring,
 )
+
+
+
+# TODO
+
+INDEX_RE = (r'('
+            + LINK_RE
+            + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
+            + r")?"
+            + r"(\s{3,}(?P<remainder>.+))?")
+
+INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
+
 
 
 class GuideIndex(dict):
