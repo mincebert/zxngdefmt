@@ -6,24 +6,6 @@ import re
 
 
 
-# document-level commands
-#
-# This defines the order in which the commands are written in an output
-# guide, as well as to construct the regular expression of commands to
-# match.
-
-DOC_CMDS = [
-    "title",
-    "author",
-    "copyright",
-    "version",
-    "date",
-    "build",
-    "index",
-]
-
-
-
 # <?>_RE = string
 #
 # Regular expressions to match various bits of NextGuide markup.
@@ -53,9 +35,6 @@ TOKEN_RE = (r"(?P<token>"
             + r'|' + SPACE_RE
             + r')'
             + r"(?P<remainder>.*)")
-
-# matching document-level tokens
-DOC_CMDS_RE = (r"@(?P<cmd>" + '|'.join(DOC_CMDS) + r")( (?P<value>.+))?")
 
 # start of a node
 NODE_CMDS_RE = r"@node (?P<name>\S+)"

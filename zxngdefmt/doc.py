@@ -8,13 +8,32 @@ import sys
 from .node import GuideNode
 
 from .token import (
-    DOC_CMDS,
-    DOC_CMDS_RE,
     IGNORE_RE,
     NODAL_CMDS_RE,
     NODE_CMDS_RE
 )
 
+
+
+# document-level commands
+#
+# This defines the order in which the commands are written in an output
+# guide, as well as to construct the regular expression of commands to
+# match.
+
+DOC_CMDS = [
+    "title",
+    "author",
+    "copyright",
+    "version",
+    "date",
+    "build",
+    "index",
+]
+
+
+# matching document-level tokens
+DOC_CMDS_RE = (r"@(?P<cmd>" + '|'.join(DOC_CMDS) + r")( (?P<value>.+))?")
 
 
 # maximum length for a single line in the output guide
