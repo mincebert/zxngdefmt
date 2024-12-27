@@ -160,6 +160,27 @@ def rendertoken(t):
 
 
 
+def renderstring(s):
+    # start with the returned string empty
+    r = ""
+
+    # go through the string matching tokens (markup, literal or spaces)
+    remainder = s
+    while remainder:
+        m = re.match(TOKEN_RE, remainder)
+
+        if not m:
+            raise AssertionError(
+                "failed to match next token in: " + remainder)
+
+        token, remainder = m.group("token", "remainder")
+
+        r += rendertoken(token)
+
+    return r
+
+
+
 class GuideIndex(object):
     """TODO
     """
@@ -179,7 +200,7 @@ class GuideIndex(object):
         link_text, link_target, static_text, refs = (
             m.group("link_text", "link_target", "static_text", "remainder"))
 
-        term = (link_text or static_text).strip()
+        term = renderstring((link_text or static_text).strip())
 
         refs_dict = {}
         while refs:
@@ -295,12 +316,12 @@ class GuideNode(object):
             m = re.match(INDEX_RE, line)
             if m:
                 term_text, term_target, refs = m.group("link_text", "link_target", "refs")
-                ref_dict = {}
+                refs_dict = {}
                 while refs:
                     m = re.match(INDEX_REFS_RE, refs)
                     ref_text, ref_target, refs = m.group("link_text", "link_target", "remainder")
                     refs_dict[ref_text] = ref_target
-                terms[term_text] = { "target": term_target, "refs": refs_dict }
+                terms[renderstring(term_text)] = { "target": term_target, "refs": refs_dict }
 
 
     def write(self, *, doc_name=None, node_docs={}):
