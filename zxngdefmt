@@ -8,6 +8,7 @@ __version__ = "0.1"
 
 
 
+import os
 import re
 import sys
 
@@ -109,7 +110,11 @@ LITERALLINE_RE = (
 
 # TODO
 
-INDEX_RE = r'\s*(' + LINK_RE + r"|(?P<static_text>\S+(\s\S+)*))(\s{3,}(?P<remainder>.+))?"
+INDEX_RE = (r'('
+            + LINK_RE
+            + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
+            + r")?"
+            + r"(\s{3,}(?P<remainder>.+))?")
 
 INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
 
@@ -181,7 +186,7 @@ def renderstring(s):
 
 
 
-class GuideIndex(object):
+class GuideIndex(dict):
     """TODO
     """
 
@@ -189,10 +194,14 @@ class GuideIndex(object):
     def __init__(self):
         super().__init__()
 
-        self._terms = {}
+
+    def __repr__(self):
+        return "GuideIndex(" + super().__repr__() + ')'
 
 
-    def parse(self, line):
+    def parseline(self, line, prev_term=None):
+        line = line.strip()
+
         m = re.match(INDEX_RE, line)
         if not m:
             raise ValueError("cannot parse link from line: " + line)
@@ -200,7 +209,7 @@ class GuideIndex(object):
         link_text, link_target, static_text, refs = (
             m.group("link_text", "link_target", "static_text", "remainder"))
 
-        term = renderstring((link_text or static_text).strip())
+        term = renderstring((link_text or static_text or prev_term).strip())
 
         refs_dict = {}
         while refs:
@@ -211,21 +220,9 @@ class GuideIndex(object):
                 m.group("link_text", "link_target", "remainder"))
             refs_dict[ref_text.strip()] = ref_target
 
-        self._terms[term] = { "target": link_target, "refs": refs_dict }
+        self[term] = { "target": link_target, "refs": refs_dict }
 
-
-    def __str__(self):
-        s = []
-
-        for term_name in self._terms:
-            term = self._terms[term_name]
-            s.append(f"{term_name}" + ((" : " + term["target"]) if term["target"] is not None else "") + " =>")
-            for r in sorted(term["refs"]):
-                ref = term["refs"][r]
-                s.append(f"  {r} : {ref}")
-
-        return '\n'.join(s)
-
+        return term
 
 
 class GuideNode(object):
@@ -311,17 +308,14 @@ class GuideNode(object):
         TODO
         """
 
-        terms = {}
+        index = GuideIndex()
+        prev_term = None
+
         for line in self._lines:
-            m = re.match(INDEX_RE, line)
-            if m:
-                term_text, term_target, refs = m.group("link_text", "link_target", "refs")
-                refs_dict = {}
-                while refs:
-                    m = re.match(INDEX_REFS_RE, refs)
-                    ref_text, ref_target, refs = m.group("link_text", "link_target", "remainder")
-                    refs_dict[ref_text] = ref_target
-                terms[renderstring(term_text)] = { "target": term_target, "refs": refs_dict }
+            term = index.parseline(line, prev_term)
+            prev_term = term
+
+        return index
 
 
     def write(self, *, doc_name=None, node_docs={}):
@@ -507,6 +501,7 @@ class GuideDoc(object):
         self.readfile(filename)
         self.checklinks()
         self.setdefaultlinks()
+        self.parseindex()
 
 
     def setname(self, name):
@@ -683,14 +678,17 @@ class GuideDoc(object):
         TODO
         """
 
-        index = self._cmds.get("index")
-        if index:
-            return None
+        self.index = {}
 
-        index_node = self.getnode(index)
+        index_name = self._cmds.get("index")
+        if not index_name:
+            return
+
+        print("IndexName", index_name, file=sys.stderr)
+        index_node = self.getnode(index_name)
 
         if index_node:
-            index_node.parseindex()
+            self.index = index_node.parseindex()
 
 
     def print(self, *, node_docs={}):
@@ -776,13 +774,18 @@ class GuideSet(object):
 
 
     def parseindex(self):
-        set_index = {}
+        self.index = {}
         for doc in self._docs:
-            doc_index = doc.parseindex() or {}
-            for term in doc_index:
-                set_index[term].update(doc_index[term])
-
-        return set_index
+            doc.parseindex()
+            print("DOC INDEX", doc.getname(), "INDEX=>", doc.index, file=sys.stderr)
+            for term in doc.index:
+                self.index.setdefault(term, {})
+                self_term = self.index[term]
+                self_term.setdefault("refs", {})
+                doc_term = doc.index[term]
+                if doc_term["target"]:
+                    self_term["target"] = doc_term["target"]
+                self_term["refs"].update(doc_term["refs"])
 
 
     def print(self):
@@ -790,6 +793,8 @@ class GuideSet(object):
             print(f"=> DOC: {doc.getname()}")
             doc.print(node_docs=self._nodes)
 
+
+os.chdir("../tbblue/docs/guides")
 
 guide_set = GuideSet(["NextBASIC.gde", "NextBASIC_pt2.gde"])
 
@@ -801,12 +806,7 @@ if w:
     for w1 in w:
         print('-', w1, file=sys.stderr)
 
-i = GuideIndex()
+guide_set.parseindex()
 
-i.parse(r' @{b}ERASE@{ub}           @{" ERASE (file) " LINK ERASE_FILE}, @{" ERASE (lines) " LINK ERASE_LINES}')
-
-i.parse(r' @{b}ERASE@{ub}           @{" ERASE (cheese) " LINK ERASE_CHEESE}')
-
-i.parse(r' @{b}BANANA@{ub}           @{" PEEL " LINK PEEL}')
-
-print(i, file=sys.stderr)
+print("INDEX:", file=sys.stderr)
+print(guide_set.index, file=sys.stderr)
