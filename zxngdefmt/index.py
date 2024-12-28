@@ -32,6 +32,7 @@ def _itermore(iterable):
     information if there are more values to come after the current one
     (True), or if it is the last value (False).
     """
+
     # Get an iterator and pull the first value.
     i = iter(iterable)
     try:
@@ -55,6 +56,8 @@ class GuideIndex(dict):
 
     def __init__(self):
         super().__init__()
+
+        self._warnings = []
 
 
     def __repr__(self):
@@ -93,7 +96,7 @@ class GuideIndex(dict):
         return term
 
 
-    def format(self, term_width=20, doc_width=80):
+    def format(self, doc_name, node_docs, term_width=20, doc_width=80):
         prev_term_text = None
         prev_term_alphanum = None
 
@@ -115,15 +118,22 @@ class GuideIndex(dict):
             term = self[term_text]
 
             if "target" in term:
-                line = linkcmd(term_text, term["target"])
+                line_render = term_text
+                line_markup = linkcmd(term_text,
+                               node_docs.fixlink(doc_name, term["target"]))
             else:
-                line = term_text
+                line_render = term_text
+                line_markup = term_text
 
             if len(term_text) + 3 > term_width:
-                index_lines.append(line)
-                line = ' ' * term_width
+                index_lines.append(line_markup)
+                tab = ' ' * term_width
+                line_render += tab
+                line_markup += tab
             else:
-                line += ' ' * (term_width - len(term_text))
+                tab = ' ' * (term_width - len(term_text))
+                line_render += tab
+                line_markup += tab
 
             refs = term["refs"]
 
@@ -134,11 +144,11 @@ class GuideIndex(dict):
                 ref_pre = '' if line_first else ' '
                 ref_post = ',' if more else ''
 
-                if len(line + ref_pre + ref_text + ref_post) > doc_width:
-                    index_lines.append(line)
+                if len(line_render + ref_pre + ref_text + ref_post) > doc_width:
+                    index_lines.append(line_markup)
 
                     # start new indented line
-                    line = ' ' * term_width
+                    line_markup = line_render = ' ' * term_width
 
                     ref_pre = ''
 
@@ -146,9 +156,19 @@ class GuideIndex(dict):
                 else:
                     line_first = False
 
-                line += ref_pre + linkcmd(ref_text, refs[ref]) + ref_post
+                ref_link_fix = node_docs.fixlink(doc_name, refs[ref])
 
-            index_lines.append(line)
+                if not ref_link_fix:
+                    self._warnings.append(
+                        f"index term: @{term_text} reference: {ref} unknown"
+                        f" target: @{refs[ref]}")
+
+                    ref_link_fix = refs[ref]
+
+                line_markup += ref_pre + linkcmd(ref_text, ref_link_fix) + ref_post
+                line_render += ref_pre + ref_text + ref_post
+
+            index_lines.append(line_markup)
 
             prev_term_text = term_text
             prev_term_alphanum = term_alphanum

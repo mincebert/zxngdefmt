@@ -5,6 +5,7 @@
 import re
 
 from .index import GuideIndex
+
 from .token import (
     LINK_RE,
     LITERALLINE_RE,
