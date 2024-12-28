@@ -260,6 +260,8 @@ class GuideDoc(object):
         if index_node:
             self.index = index_node.parseindex()
 
+        print(self.index, file=sys.stderr)
+
 
     def print(self, *, node_docs={}):
         """TODO - just print the document and nodes raw

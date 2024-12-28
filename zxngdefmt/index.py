@@ -82,7 +82,10 @@ class GuideIndex(dict):
                 m.group("link_text", "link_target", "remainder"))
             refs_dict[ref_text.strip()] = ref_target
 
-        self[term] = { "target": link_target, "refs": refs_dict }
+        self.setdefault(term, {})
+        self[term].setdefault("target", link_target)
+        self[term].setdefault("refs", {})
+        self[term]["refs"].update(refs_dict)
 
         return term
 
