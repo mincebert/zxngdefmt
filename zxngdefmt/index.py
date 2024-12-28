@@ -11,6 +11,14 @@ from .token import (
 
 
 
+# width for the term list in an index
+TERM_WIDTH = 20
+
+# minimum number of spaces to leave between a term and the start of the
+# references for an index entry
+TERM_GAP = 3
+
+
 # TODO
 
 INDEX_RE = (r'\s{,2}'
@@ -125,7 +133,7 @@ class GuideIndex(dict):
             self_term["refs"].update(merge_term["refs"])
 
 
-    def format(self, doc_name, node_docs, term_width=20, term_margin=3, doc_width=80):
+    def format(self, doc_name, node_docs, line_maxlen, term_width=TERM_WIDTH, term_gap=TERM_GAP):
         prev_term_text = None
         prev_term_alphanum = None
 
@@ -154,7 +162,7 @@ class GuideIndex(dict):
                 line_render = term_text
                 line_markup = term_text
 
-            if len(term_text) + term_margin > term_width:
+            if len(term_text) + term_gap > term_width:
                 index_lines.append(line_markup)
                 tab = ' ' * term_width
                 line_render += tab
@@ -173,7 +181,7 @@ class GuideIndex(dict):
                 ref_pre = '' if line_first else ' '
                 ref_post = ',' if more else ''
 
-                if len(line_render + ref_pre + ref_text + ref_post) > doc_width:
+                if len(line_render + ref_pre + ref_text + ref_post) > line_maxlen:
                     index_lines.append(line_markup)
 
                     # start new indented line

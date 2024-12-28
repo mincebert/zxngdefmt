@@ -21,9 +21,12 @@ from .token import (
 
 
 
-# _NODE_LINK_TYPES = set
-#
-# Valid types of links from a node.
+# maximum rendered length for a single line in a formatted the output guide
+
+LINE_MAXLEN = 80
+
+
+# valid types of links from a node
 
 _NODE_LINK_TYPES = ["prev", "next", "toc"]
 

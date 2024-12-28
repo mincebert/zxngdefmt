@@ -1,5 +1,7 @@
 # zxngdefmt/doc.py
 
+# Documents are NextGuide files containing one or more nodes.
+
 
 
 import re
@@ -10,16 +12,23 @@ from .node import GuideNode
 from .token import (
     IGNORE_RE,
     NODAL_CMDS_RE,
-    NODE_CMDS_RE
+    NODE_CMDS_RE,
 )
 
 
 
-# document-level commands
+# --- constants ---
+
+
+
+# DOC_CMDS = list
 #
-# This defines the order in which the commands are written in an output
-# guide, as well as to construct the regular expression of commands to
-# match.
+# This defines the available commands at the document (file) level.
+# They are used to construct a regular expression to match lines
+# containing them.
+#
+# In addition, the order of this list determines the order in which they
+# are included in the output document file.
 
 DOC_CMDS = [
     "title",
@@ -32,13 +41,11 @@ DOC_CMDS = [
 ]
 
 
-# matching document-level tokens
-DOC_CMDS_RE = (r"@(?P<cmd>" + '|'.join(DOC_CMDS) + r")( (?P<value>.+))?")
+# regular expression to match document-level commands
 
+DOC_CMDS_RE = re.compile(
+                  r"@(?P<cmd>" + '|'.join(DOC_CMDS) + r")( (?P<value>.+))?")
 
-# maximum length for a single line in the output guide
-
-LINE_MAXLEN = 80
 
 
 
@@ -125,7 +132,7 @@ class GuideDoc(object):
                     continue
 
                 # match document-level commands
-                m = re.match(DOC_CMDS_RE, l)
+                m = DOC_CMDS_RE.match(l)
                 if m:
                     if not current_node:
                         self._cmds[m.group("cmd")] = m.group("value")
@@ -274,6 +281,6 @@ class GuideDoc(object):
 
         for n in self._nodes:
             print()
-            print('@' + ('-' * (LINE_MAXLEN - 1)))
+            print('@' + ('-' * (80 - 1)))
             for l in n.format(doc_name=self.getname(), node_docs=node_docs):
                 print(l)

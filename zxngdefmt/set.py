@@ -5,7 +5,7 @@
 import sys
 
 from .index import GuideIndex
-from .node import GuideNodeDocs
+from .node import GuideNodeDocs, LINE_MAXLEN
 from .doc import GuideDoc
 
 
@@ -83,9 +83,9 @@ class GuideSet(object):
             self.index.merge(doc.index)
 
 
-    def formatindex(self):
+    def formatindex(self, line_maxlen=LINE_MAXLEN):
         for doc in self._docs:
-            return self.index.format(doc.getname(), self._node_docs)
+            return self.index.format(doc.getname(), self._node_docs, line_maxlen)
 
 
     def print(self):
