@@ -27,7 +27,7 @@ def linkcmd(text, target):
     return '@{"' + text + '" LINK ' + target + '}'
 
 
-def _iterislast(iterable):
+def _itermore(iterable):
     """Pass through all values from the given iterable, augmented by the
     information if there are more values to come after the current one
     (True), or if it is the last value (False).
@@ -41,10 +41,10 @@ def _iterislast(iterable):
     # Run the iterator to exhaustion (starting from the second value).
     for v in i:
         # Report the *previous* value (more to come).
-        yield prev, False
+        yield prev, True
         prev = v
     # Report the last value.
-    yield prev, True
+    yield prev, False
 
 
 
@@ -82,6 +82,9 @@ class GuideIndex(dict):
                 m.group("link_text", "link_target", "remainder"))
             refs_dict[ref_text.strip()] = ref_target
 
+        if (not link_target) and (not refs_dict):
+            return term
+
         self.setdefault(term, {})
         self[term].setdefault("target", link_target)
         self[term].setdefault("refs", {})
@@ -117,28 +120,33 @@ class GuideIndex(dict):
                 line = term_text
 
             if len(term_text) + 3 > term_width:
-                index_text += line
+                index_lines.append(line)
                 line = ' ' * term_width
             else:
                 line += ' ' * (term_width - len(term_text))
 
             refs = term["refs"]
 
-            is_line_first = True
-            for ref, is_last in _iterislast(sorted(refs)):
+            line_first = True
+            for ref, more in _itermore(sorted(refs)):
                 ref_text = ' ' + ref + ' '
-                ref_entry = (('' if is_line_first else ' ')
-                             + linkcmd(ref_text, refs[ref])
-                             + ("" if is_last else ','))
 
-                if len(line + ref_text) > doc_width:
+                ref_pre = '' if line_first else ' '
+                ref_post = ',' if more else ''
+
+                if len(line + ref_pre + ref_text + ref_post) > doc_width:
                     index_lines.append(line)
-                    line = ' ' * term_width
-                    is_line_first = True
-                else:
-                    is_line_first = False
 
-                line += ref_entry
+                    # start new indented line
+                    line = ' ' * term_width
+
+                    ref_pre = ''
+
+                    line_first = True
+                else:
+                    line_first = False
+
+                line += ref_pre + linkcmd(ref_text, refs[ref]) + ref_post
 
             index_lines.append(line)
 
