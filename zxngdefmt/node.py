@@ -25,7 +25,7 @@ from .token import (
 #
 # Valid types of links from a node.
 
-_NODE_LINK_TYPES = { "prev", "next", "contents" }
+_NODE_LINK_TYPES = ["prev", "next", "toc"]
 
 
 
@@ -186,7 +186,7 @@ class GuideNode(object):
         # formatted lines in the output
         output = ["@node " + self.name]
 
-        for link in ["prev", "next", "toc", "index"]:
+        for link in _NODE_LINK_TYPES:
             if link in self._links:
                 output.append(f"@{link} {self._links[link]}")
 

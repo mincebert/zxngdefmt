@@ -91,8 +91,8 @@ class GuideSet(object):
 
 
     def formatindex(self):
-        for doc_name in self._docs:
-            return self.index.format(doc_name, self._node_docs)
+        for doc in self._docs:
+            return self.index.format(doc.getname(), self._node_docs)
 
 
     def print(self):

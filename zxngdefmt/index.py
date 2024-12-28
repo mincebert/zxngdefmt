@@ -13,10 +13,13 @@ from .token import (
 
 # TODO
 
-INDEX_RE = (r'('
+INDEX_RE = (r'\s{,2}'
+
+            + '('
             + LINK_RE
             + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
             + r")?"
+
             + r"(\s{3,}(?P<remainder>.+))?")
 
 INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
@@ -65,8 +68,6 @@ class GuideIndex(dict):
 
 
     def parseline(self, line, prev_term=None):
-        line = line.strip()
-
         m = re.match(INDEX_RE, line)
         if not m:
             raise ValueError("cannot parse link from line: " + line)
@@ -96,7 +97,7 @@ class GuideIndex(dict):
         return term
 
 
-    def format(self, doc_name, node_docs, term_width=20, doc_width=80):
+    def format(self, doc_name, node_docs, term_width=20, term_margin=3, doc_width=80):
         prev_term_text = None
         prev_term_alphanum = None
 
@@ -125,7 +126,7 @@ class GuideIndex(dict):
                 line_render = term_text
                 line_markup = term_text
 
-            if len(term_text) + 3 > term_width:
+            if len(term_text) + term_margin > term_width:
                 index_lines.append(line_markup)
                 tab = ' ' * term_width
                 line_render += tab
