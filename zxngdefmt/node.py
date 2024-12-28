@@ -1,5 +1,7 @@
 # zxngdefmt/node.py
 
+# Nodes are pages in NextGuide.
+
 
 
 import re
@@ -14,35 +16,51 @@ from .token import (
 )
 
 
-# maximum length for a single line in the output guide
-#
-# TODO: also in doc
 
-LINE_MAXLEN = 80
+# --- constants ---
+
+
+
+# _NODE_LINK_TYPES = set
+#
+# Valid types of links from a node.
+
+_NODE_LINK_TYPES = { "prev", "next", "contents" }
+
+
+
+# --- classes ---
 
 
 
 class GuideNodeDocs(dict):
-    def fixlink(self, doc_name, target):
-        """This function is passed as the parameter for 'repl' to
-        the re.sub() function, to add the 'Document/' prefix to a
-        link target, if it is in another document in the set.
+    """Represents a mapping between a node name (held in the key of a
+    dict) and the document it's in.  This is used to fix links to nodes
+    nodes in other documents by prefixing them with the document name.
+    """
 
-        Warnings will also be generated if a link target is does not
-        exist.
+    def fixlink(self, doc_name, target):
+        """This function is passed as the parameter for re.sub(repl=) to
+        add the 'Document/' prefix to a link target node name
+        ('target'), if it is in a different document (from 'doc_name',
+        the one supplied).
+
+        If the target node name could not be found, None is returned;
+        the caller can use this to correct the link or flag up an error.
         """
 
-        # if the link is local (not to another document) ...
+        # check if the link is not already qualified with a document name ...
         if '/' not in target:
-            # ... and the target is a node in the set
+            # if the target node was not found, return None
             if target not in self:
                 return
 
-            if self[target] != doc_name:
-                return self[target] + '/' + target
+            # if the target node is in this document - return it unqualified
+            if self[target] == doc_name:
+                return target
 
-        # return the (possibly rewritten) link target
-        return target
+        # the target is in another document - qualify it
+        return self[target] + '/' + target
 
 
 
@@ -54,19 +72,19 @@ class GuideNode(object):
 
 
     def __init__(self, name):
-        """Initialise a new node with the specified name.
+        """Initialise a new node.
         """
 
         super().__init__()
 
-        # initialise the current node with the specified name
+        # store the name
         self.name = name
 
-        # no links to other documents yet
-        self._links = {}
-
-        # no lines yet
+        # initialise the list of lines in the node
         self._lines = []
+
+        # initialise the links to other nodes (prev/next/contents)
+        self._links = {}
 
         # initialise list of warnings encountered
         self._warnings = []
@@ -76,28 +94,43 @@ class GuideNode(object):
         return f"GuideNode(@{self.name})"
 
 
-    def setlink(self, link, node):
-        """Unconditionally set the link to another node.  This is used
-        when a node explicitly sets the link.
+    def setlink(self, link, target):
+        """Unconditionally set the link to another node (prev/next/contents).
+        This is used when a node explicitly sets the link.
         """
 
-        self._links[link] = node
+        # check the link is of a valid type
+        if link not in _NODE_LINK_TYPES:
+            return ValueError(f"node: @{self.name} set invalid link type:"
+                              f" {link}")
+
+        self._links[link] = target
 
 
-    def setdefaultlink(self, link, node):
+    def setdefaultlink(self, link, target):
         """Set the link to another node only if this link is not yet
         defined.  This used when the entire document is completed and
         the missing links are filled in.
         """
 
-        if node:
-            self._links.setdefault(link, node)
+        # check the link is of a valid type
+        if link not in _NODE_LINK_TYPES:
+            return ValueError(f"node: @{self.name} set default invalid link"
+                              f" type: {link}")
+
+        if target:
+            self._links.setdefault(link, target)
 
 
     def getlink(self, link):
         """Return the link to the specified target from this node, or
-        None if it is not defined.
+        None, if it is not defined.
         """
+
+        # check the link is of a valid type
+        if link not in _NODE_LINK_TYPES:
+            return ValueError(f"node: @{self.name} get invalid link type:"
+                              f" {link}")
 
         return self._links.get(link)
 
@@ -110,23 +143,22 @@ class GuideNode(object):
 
 
     def getwarnings(self):
-        """Return a list of warnings about this node.
+        """Return the list of warnings about this node.
         """
 
         return self._warnings
 
 
     def appendline(self, l):
-        """Add a raw line to the current node.
+        """Add a line to the current node.
         """
 
         self._lines.append(l)
 
 
     def parseindex(self):
-        """Parse index entries.
-
-        TODO
+        """Parse this node as an index, returning a GuideIndex() object
+        with all the terms and references.
         """
 
         index = GuideIndex()
@@ -139,7 +171,7 @@ class GuideNode(object):
         return index
 
 
-    def write(self, *, doc_name=None, node_docs={}):
+    def write(self, *, doc_name=None, node_docs={}, line_maxlen=80):
         # the current line being assembled
         line_markup = ""
         line_render = ""
@@ -184,7 +216,7 @@ class GuideNode(object):
 
             # start with no completed line to return and check if the stored
             # space and rendered word would fit on this line
-            if (len(line_render + pre_space + word_render) > LINE_MAXLEN):
+            if (len(line_render + pre_space + word_render) > line_maxlen):
                 # adding the current word would make it over length - render it
                 writeline()
 

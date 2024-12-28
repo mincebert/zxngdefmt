@@ -1,8 +1,17 @@
 # zxngdefmt/token.py
 
+# Tokens are pieces of text in a NextGuide document and can be literal
+# text or commands.
+#
+# This module help parse and render these.
+
 
 
 import re
+
+
+
+# --- constants ---
 
 
 
@@ -82,11 +91,13 @@ LITERALLINE_RE = (
 
 
 def rendertoken(t):
-    """Render a NextGuide token (which could be markup, or a literal
-    word, or block of spaces) into the text that would be displayed on
-    screen (ignoring formatting).  This is used to work out the length
-    of rendered markup and calculate displayed line lengths; it is not
-    used to generate output.
+    """Return a single rendered NextGuide token (which could be a
+    literal piece of text, a command, or block of spaces) into the plain
+    text equivalent (without formatting) that would be displayed on
+    screen.
+
+    This is used to work out the length of rendered markup and calculate
+    displayed line lengths; it is not used to generate output.
     """
 
     # if the token is a link, use the displayed text field
@@ -104,13 +115,14 @@ def rendertoken(t):
         if c == "(":
             return "\N{COPYRIGHT SIGN}"
 
+        # everything else we treat as whatever is after the '@'
         else:
             return c
 
     # attribute formatting codes don't render to anything displayed
     m = re.match(ATTR_RE, t)
     if m:
-        return ""
+        return ''
 
     # we have a literal word or block of spaces - just use that directly
     return t
@@ -118,17 +130,24 @@ def rendertoken(t):
 
 
 def renderstring(s):
-    # start with the returned string empty
-    r = ""
+    """Return a string containing tokens (literals, commands, spaces,
+    etc.) rendered into their plain text equivalent.  It is a wrapper
+    around rendertoken() which iteratively renders all the tokens in a
+    string.
+    """
+
+    # start with the rendered string empty
+    r = ''
 
     # go through the string matching tokens (markup, literal or spaces)
     remainder = s
     while remainder:
         m = re.match(TOKEN_RE, remainder)
 
+        # if we couldn't match a token, something has gone irretrievably
+        # wrong (probably with the regexp)
         if not m:
-            raise AssertionError(
-                "failed to match next token in: " + remainder)
+            raise ValueError("failed to match next token in: " + remainder)
 
         token, remainder = m.group("token", "remainder")
 
