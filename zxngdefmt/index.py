@@ -97,6 +97,22 @@ class GuideIndex(dict):
         return term
 
 
+    def merge(self, merge_index):
+        """TODO
+        """
+        
+        for term in merge_index:
+            self.setdefault(term, {})
+            self_term = self[term]
+            
+            merge_term = merge_index[term]
+            if merge_term["target"]:
+                self_term["target"] = merge_term["target"]
+
+            self_term.setdefault("refs", {})
+            self_term["refs"].update(merge_term["refs"])
+
+
     def format(self, doc_name, node_docs, term_width=20, term_margin=3, doc_width=80):
         prev_term_text = None
         prev_term_alphanum = None

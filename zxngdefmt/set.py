@@ -80,14 +80,7 @@ class GuideSet(object):
         for doc in self._docs:
             doc.parseindex()
             print("DOC INDEX", doc.getname(), "INDEX=>", doc.index, file=sys.stderr)
-            for term in doc.index:
-                self.index.setdefault(term, {})
-                self_term = self.index[term]
-                self_term.setdefault("refs", {})
-                doc_term = doc.index[term]
-                if doc_term["target"]:
-                    self_term["target"] = doc_term["target"]
-                self_term["refs"].update(doc_term["refs"])
+            self.index.merge(doc.index)
 
 
     def formatindex(self):
