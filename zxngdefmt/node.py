@@ -324,16 +324,19 @@ class GuideNode(object):
 
         # go through the lines in this node
         for line in self._lines:
-            # if a link is to a node in another document in the set,
-            # prefix the link with 'Document/'
+            # fix all the links in this line such that, if a link is to
+            # a node in another document in the set, qualify it by
+            # prefixing 'Document/'
             #
-            # this will also report on links targets which don't exist
+            # this will also record warnings on for link targets which
+            # don't exist
             line = re.sub(LINK_RE, fixlink_repl, line)
 
-            # if the line is blank or is one that is used literally,
-            # just add that to the document
+            # if the line is blank, or is one that is to be included
+            # literally, just add that to the document
             if (line == '') or re.match(LITERALLINE_RE, line):
-                # finish the current line and append it
+                # finish the current line and append it (if it has
+                # something in it)
                 writeline()
 
                 # add the literal line
@@ -346,26 +349,30 @@ class GuideNode(object):
             while remainder:
                 m = re.match(TOKEN_RE, remainder)
 
+                # if we couldn't match a token, something has gone
+                # irretrievably wrong (probably with the regexp)
                 if not m:
-                    raise AssertionError(
-                        "failed to match next token in: " + remainder)
+                    raise ValueError(
+                              "failed to match next token in: " + remainder)
 
                 token, remainder = m.group("token", "remainder")
-                #print(f"TOKEN >>> <{token}>")
-                #print(f"REMAINDER >>> <{remainder}>")
 
                 if m.group("space"):
-                    # token is a space, complete the current word
+                    # token is a space - complete the current word
                     completeword(space=token)
-
                 else:
-                    # token is not a space - add it
+                    # token is not a space - try to add it to the
+                    # current line (otherwise begin a new one)
                     appendtoken(token)
 
-            # end of line completes a word and adds a space
-            completeword(space=" ")
+            # the end of line in the source text completes a word and
+            # adds a separating space before the next one (if there is
+            # one)
+            completeword(space=' ')
 
-        # if there is something in the buffer
+        # we've finished the node, flush out anything assembled in the
+        # line buffer
         writeline()
 
+        # return the list of formatted lines
         return output
