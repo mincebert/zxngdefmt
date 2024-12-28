@@ -94,8 +94,9 @@ class GuideIndex(dict):
         index_lines = []
 
         for term_text in sorted(self,
-                                key=lambda s: s if re.match("[0-9A-Z]", s)
-                                                    else (' ' + s)):
+                                key=lambda s: s.lower()
+                                                  if re.match("[0-9A-Z]", s)
+                                                  else (' ' + s)):
 
             term_alphanum = bool(re.match(r"[0-9A-Z]", term_text))
             if prev_term_text:
