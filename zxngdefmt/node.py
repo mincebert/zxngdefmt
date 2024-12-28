@@ -161,11 +161,19 @@ class GuideNode(object):
         with all the terms and references.
         """
 
+        # initialise the index
         index = GuideIndex()
+
+        # initialise the previous term found to 'not found yet'
         prev_term = None
 
         for line in self._lines:
+            # parse this line and get the term used in it (or the
+            # previous one, if one was not found, as this is continuing
+            # that)
             term = index.parseline(line, prev_term)
+
+            # store this term as the previous one
             prev_term = term
 
         return index

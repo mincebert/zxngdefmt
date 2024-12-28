@@ -75,7 +75,16 @@ class GuideIndex(dict):
         link_text, link_target, static_text, refs = (
             m.group("link_text", "link_target", "static_text", "remainder"))
 
-        term = renderstring((link_text or static_text or prev_term).strip())
+        # if we haven't got a term from this line, nor is there one
+        # continuing from the previous line, skip this one
+        term_markup = link_text or static_text or prev_term
+        if not term_markup:
+            self._warnings.append("no term or previous term on index"
+                                  " line: " + line)
+
+            return None
+
+        term = renderstring(term_markup.strip())
 
         refs_dict = {}
         while refs:
@@ -86,8 +95,11 @@ class GuideIndex(dict):
                 m.group("link_text", "link_target", "remainder"))
             refs_dict[ref_text.strip()] = ref_target
 
+        # if no link targe in the term, nor any refs, this probably is
+        # not an index entry but some plain text - ignore this line and
+        # return that we're not in a term
         if (not link_target) and (not refs_dict):
-            return term
+            return None
 
         self.setdefault(term, {})
         self[term].setdefault("target", link_target)
@@ -100,11 +112,11 @@ class GuideIndex(dict):
     def merge(self, merge_index):
         """TODO
         """
-        
+
         for term in merge_index:
             self.setdefault(term, {})
             self_term = self[term]
-            
+
             merge_term = merge_index[term]
             if merge_term["target"]:
                 self_term["target"] = merge_term["target"]
