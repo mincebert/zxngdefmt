@@ -23,7 +23,7 @@ INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
 
 
 
-class GuideIndex(object):
+class GuideIndex(dict):
     """TODO
     """
 
@@ -31,23 +31,9 @@ class GuideIndex(object):
     def __init__(self):
         super().__init__()
 
-        self._index = {}
-
 
     def __repr__(self):
         return "GuideIndex(" + super().__repr__() + ')'
-
-
-    def __iter__(self):
-        return iter(self._index)
-
-
-    def __next__(self):
-        return next(self._index)
-
-
-    def __getitem__(self, i):
-        return self._index[i]
 
 
     def parseline(self, line, prev_term=None):
@@ -71,6 +57,6 @@ class GuideIndex(object):
                 m.group("link_text", "link_target", "remainder"))
             refs_dict[ref_text.strip()] = ref_target
 
-        self._index[term] = { "target": link_target, "refs": refs_dict }
+        self[term] = { "target": link_target, "refs": refs_dict }
 
         return term
