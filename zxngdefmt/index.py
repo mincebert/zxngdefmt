@@ -23,6 +23,31 @@ INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
 
 
 
+def linkcmd(text, target):
+    return '@{"' + text + '" LINK ' + target + '}'
+
+
+def _iterislast(iterable):
+    """Pass through all values from the given iterable, augmented by the
+    information if there are more values to come after the current one
+    (True), or if it is the last value (False).
+    """
+    # Get an iterator and pull the first value.
+    i = iter(iterable)
+    try:
+        prev = next(i)
+    except StopIteration:
+        return
+    # Run the iterator to exhaustion (starting from the second value).
+    for v in i:
+        # Report the *previous* value (more to come).
+        yield prev, False
+        prev = v
+    # Report the last value.
+    yield prev, True
+
+
+
 class GuideIndex(dict):
     """TODO
     """
@@ -60,3 +85,60 @@ class GuideIndex(dict):
         self[term] = { "target": link_target, "refs": refs_dict }
 
         return term
+
+
+    def format(self, term_width=20, doc_width=80):
+        prev_term_text = None
+        prev_term_alphanum = None
+
+        index_lines = []
+
+        for term_text in sorted(self,
+                                key=lambda s: s if re.match("[0-9A-Z]", s)
+                                                    else (' ' + s)):
+
+            term_alphanum = bool(re.match(r"[0-9A-Z]", term_text))
+            if prev_term_text:
+                if term_alphanum != prev_term_alphanum:
+                        index_lines.append('')
+
+                elif term_alphanum and (term_text[0] != prev_term_text[0]):
+                    index_lines.append('')
+
+            term = self[term_text]
+
+            if "target" in term:
+                line = linkcmd(term_text, term["target"])
+            else:
+                line = term_text
+
+            if len(term_text) + 3 > term_width:
+                index_text += line
+                line = ' ' * term_width
+            else:
+                line += ' ' * (term_width - len(term_text))
+
+            refs = term["refs"]
+
+            is_line_first = True
+            for ref, is_last in _iterislast(sorted(refs)):
+                ref_text = ' ' + ref + ' '
+                ref_entry = (('' if is_line_first else ' ')
+                             + linkcmd(ref_text, refs[ref])
+                             + ("" if is_last else ','))
+
+                if len(line + ref_text) > doc_width:
+                    index_lines.append(line)
+                    line = ' ' * term_width
+                    is_line_first = True
+                else:
+                    is_line_first = False
+
+                line += ref_entry
+
+            index_lines.append(line)
+
+            prev_term_text = term_text
+            prev_term_alphanum = term_alphanum
+
+        return '\n'.join(index_lines)

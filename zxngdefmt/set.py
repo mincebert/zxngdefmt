@@ -4,6 +4,7 @@
 
 import sys
 
+from .index import GuideIndex
 from .node import GuideNodeDocs
 from .doc import GuideDoc
 
@@ -75,7 +76,7 @@ class GuideSet(object):
 
 
     def parseindex(self):
-        self.index = {}
+        self.index = GuideIndex()
         for doc in self._docs:
             doc.parseindex()
             print("DOC INDEX", doc.getname(), "INDEX=>", doc.index, file=sys.stderr)
@@ -87,6 +88,10 @@ class GuideSet(object):
                 if doc_term["target"]:
                     self_term["target"] = doc_term["target"]
                 self_term["refs"].update(doc_term["refs"])
+
+
+    def formatindex(self):
+        return self.index.format()
 
 
     def print(self):
