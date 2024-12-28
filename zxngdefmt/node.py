@@ -21,6 +21,30 @@ LINE_MAXLEN = 80
 
 
 
+class GuideNodeDocs(dict):
+    def fixlink(self, doc_name, target):
+        """This function is passed as the parameter for 'repl' to
+        the re.sub() function, to add the 'Document/' prefix to a
+        link target, if it is in another document in the set.
+
+        Warnings will also be generated if a link target is does not
+        exist.
+        """
+
+        # if the link is local (not to another document) ...
+        if '/' not in target:
+            # ... and the target is a node in the set
+            if target not in self:
+                return
+
+            if self[target] != doc_name:
+                return self[target] + '/' + target
+
+        # return the (possibly rewritten) link target
+        return target
+
+
+
 class GuideNode(object):
     """Represents a node (page in a NextGuide document).
 
@@ -192,31 +216,13 @@ class GuideNode(object):
             word_render += rendertoken(t)
 
 
-        def fixlink(m):
-            """This function is passed as the parameter for 'repl' to
-            the re.sub() function, to add the 'Document/' prefix to a
-            link target, if it is in another document in the set.
-
-            Warnings will also be generated if a link target is does not
-            exist.
-            """
-
-            text, target = m.group("link_text", "link_target")
-
-            # if the link is local (not to another document) ...
-            if '/' not in target:
-                # ... and the target is a node in the set
-                if target in node_docs:
-                    if node_docs[target] != doc_name:
-                        target = node_docs[target] + '/' + target
-
-                # ... the target is unknown - generate a warning
-                else:
-                    self._warnings.append(
-                        f"link: '{text}' target: @{target} does not exist")
-
-            # return the (possibly rewritten) link command
-            return '@{"' + text + '" LINK ' + target + '}'
+        def fixlink_repl(m):
+            link_text, link_target = m.group("link_text", "link_target")
+            fixed_target = node_docs.fixlink(doc_name, link_target)
+            if fixed_target is None:
+                self._warnings.append(
+                    f"link target: @{link_target} does not exist")
+            return '@{"' + link_text + '" LINK ' + (fixed_target or link_target) + '}'
 
 
         for line in self._lines:
@@ -224,7 +230,7 @@ class GuideNode(object):
             # prefix the link with 'Document/'
             #
             # this will also report on links targets which don't exist
-            line = re.sub(LINK_RE, fixlink, line)
+            line = re.sub(LINK_RE, fixlink_repl, line)
 
             # if the line is blank or is one that is used literally,
             # just add that to the document

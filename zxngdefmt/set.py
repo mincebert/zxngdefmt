@@ -4,6 +4,7 @@
 
 import sys
 
+from .node import GuideNodeDocs
 from .doc import GuideDoc
 
 
@@ -21,7 +22,7 @@ class GuideSet(object):
         self._docs = []
 
         # initialise a dictionary mapping nodes to docs
-        self._nodes = {}
+        self._node_docs = GuideNodeDocs()
 
         # initialise list of warnings at the set level (warnings from
         # individual documents are stored there and concatenated, when
@@ -43,16 +44,16 @@ class GuideSet(object):
             for node_name in doc.getnodenames():
                 # if a node with this name already exists, record a
                 # warning and skip adding it
-                if node_name in self._nodes:
+                if node_name in self._node_docs:
                     self._warnings.append(
                         f"document: {doc.getname()} node:"
                         f" @{node_name} same name already exists in"
-                        f" document: {self._nodes[node_name]} -"
+                        f" document: {self._node_docs[node_name]} -"
                         f" ignoring")
                     continue
 
                 # record this node as in this document
-                self._nodes[node_name] = doc.getname()
+                self._node_docs[node_name] = doc.getname()
 
 
     def getwarnings(self):
@@ -91,4 +92,4 @@ class GuideSet(object):
     def print(self):
         for doc in self._docs:
             print(f"=> DOC: {doc.getname()}")
-            doc.print(node_docs=self._nodes)
+            doc.print(node_docs=self._node_docs)

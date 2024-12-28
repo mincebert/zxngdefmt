@@ -30,7 +30,7 @@ class GuideIndex(object):
 
     def __init__(self):
         super().__init__()
-        
+
         self._index = {}
 
 
@@ -44,11 +44,11 @@ class GuideIndex(object):
 
     def __next__(self):
         return next(self._index)
-    
-    
+
+
     def __getitem__(self, i):
         return self._index[i]
-    
+
 
     def parseline(self, line, prev_term=None):
         line = line.strip()
