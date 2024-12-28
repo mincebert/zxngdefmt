@@ -83,7 +83,7 @@ class GuideNode(object):
         # initialise the list of lines in the node
         self._lines = []
 
-        # initialise the links to other nodes (prev/next/contents)
+        # initialise the links to other nodes (prev/next/toc)
         self._links = {}
 
         # initialise list of warnings encountered
@@ -95,7 +95,7 @@ class GuideNode(object):
 
 
     def setlink(self, link, target):
-        """Unconditionally set the link to another node (prev/next/contents).
+        """Unconditionally set the link to another node (prev/next/toc).
         This is used when a node explicitly sets the link.
         """
 
@@ -173,99 +173,156 @@ class GuideNode(object):
             # that)
             term = index.parseline(line, prev_term)
 
-            # store this term as the previous one
+            # store the term from this line (or continued from a
+            # previous line) as the new previous one
             prev_term = term
 
         return index
 
 
-    def write(self, *, doc_name=None, node_docs={}, line_maxlen=80):
-        # the current line being assembled
+    def format(self, *, doc_name=None, node_docs={}, line_maxlen=80):
+        """Return the node as a list of lines of markup, formatted with
+        word wrap for the specified maximum line length.
+        """
+
+
+        # the list of output lines to be returned, starting with the
+        # '@node' command, identifying the node
+        output = ["@node " + self.name]
+
+        # the current line being assembled - we store two versions:
+        #
+        # line_markup contains the text containing literal text and
+        # commands and is used for the actual output
         line_markup = ""
+        #
+        # line_render contains the displayed text equivalent, obtained
+        # using rendertoken(), and is used to calculate displayed text
+        # lengths for wrapping words
         line_render = ""
 
-        # any spaces
-        pre_space = ""
-
+        # the current 'word' being assembled - a word is a sequence of
+        # tokens (markup, literal text, etc.) that cannot be broken
+        # across lines - if it cannot fit on a line, a new line will be
+        # begun
         word_markup = ""
         word_render = ""
 
+        # any spaces before the current word - these will be discarded
+        # if the word wraps onto the next line
+        pre_space = ""
 
-        # formatted lines in the output
-        output = ["@node " + self.name]
-
+        # add the links to other documents (prev/next/toc)
         for link in _NODE_LINK_TYPES:
             if link in self._links:
                 output.append(f"@{link} {self._links[link]}")
 
 
+        # --- local functions used in this method ---
+
+
         def writeline():
+            """Add the line currently being assembled to the list of
+            output lines and start a new one.
+            """
+
             nonlocal output, line_markup, line_render, pre_space
 
             if line_markup:
                 output.append(line_markup)
 
-                line_markup = ""
-                line_render = ""
+                line_markup = ''
+                line_render = ''
 
-                pre_space = ""
+                # as we're starting a new line, we don't need the spaces
+                # that would separate the current word from the previous
+                # one
+                pre_space = ''
 
 
-        def completeword(space=""):
-            """TODO
+        def completeword(space=''):
+            """Called when the current word being assembled has been
+            completed (by some space, or at the end of a document).  It
+            will add the word to the end of the line, if it fits, or
+            start a new one with it.
+
+            The supplied 'space' is the separator between this complete
+            word and the next and is recorded in pre_space.
             """
 
-            nonlocal line_markup, line_render, pre_space, word_markup, word_render
+            nonlocal line_markup, line_render, word_markup, word_render, pre_space
 
-            # if no line or word, we have nothing to complete nor return, so
-            # we're done
+            # if no line or word is currently being assembled, we have
+            # nothing to do
             if (not line_render) and (not word_render):
                 return
 
-            # start with no completed line to return and check if the stored
-            # space and rendered word would fit on this line
-            if (len(line_render + pre_space + word_render) > line_maxlen):
-                # adding the current word would make it over length - render it
+            # check if adding the pre_space and word to the line would
+            # take it over the maximum length
+            if len(line_render + pre_space + word_render) > line_maxlen:
+                # line would be over maximum - write it out
                 writeline()
 
-                # don't add the space, as we're beginning a new line
+                # discard the space, as we're beginning a new line
 
             else:
-                # the current word will fit on this line - add the space, as
-                # we're continuing the line
+                # the word will fit on this line - add the separating
+                # pre_space
                 line_markup += pre_space
                 line_render += pre_space
 
-            # add the current word to the line (either freshly cleared, or
+            # add the word to the line (either a new, empty one, or
             # continuing the current one)
             line_markup += word_markup
             line_render += word_render
 
-            # start a new word with the supplied previous space
+            # start a new word
+            word_markup = ''
+            word_render = ''
+
+            # record the supplied space if required for the next word
             pre_space = space
-            word_markup = ""
-            word_render = ""
 
 
-        def appendtoken(t):
-            """TODO
+        def appendtoken(token):
+            """Add the supplied token to the current word.
             """
 
             nonlocal word_markup, word_render
 
-            word_markup += t
-            word_render += rendertoken(t)
+            word_markup += token
+            word_render += rendertoken(token)
 
 
         def fixlink_repl(m):
-            link_text, link_target = m.group("link_text", "link_target")
-            fixed_target = node_docs.fixlink(doc_name, link_target)
+            """Used as an argument to re.sub(repl) to fix up links, if
+            required; qualifying them with the document name, if they
+            are in a different document to the this node.
+
+            This function uses the doc_name and node_docs arguments to
+            the containing format() method.
+            """
+
+            text, target = m.group("link_text", "link_target")
+
+            # fix up the target - if not found in node_docs, None will
+            # be returned
+            fixed_target = node_docs.fixlink(doc_name, target)
+
+            # if the target was not found, record a warning
             if fixed_target is None:
-                self._warnings.append(
-                    f"link target: @{link_target} does not exist")
-            return '@{"' + link_text + '" LINK ' + (fixed_target or link_target) + '}'
+                self._warnings.append(f"link: {text} target: @{target}"
+                                      "does not exist")
+
+            # return the fixed link or, if the target was not found,
+            # return the target anyway
+            return '@{"' + text + '" LINK ' + (fixed_target or target) + '}'
 
 
+        # --- body ---
+
+
+        # go through the lines in this node
         for line in self._lines:
             # if a link is to a node in another document in the set,
             # prefix the link with 'Document/'

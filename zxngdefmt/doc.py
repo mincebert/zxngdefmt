@@ -275,5 +275,5 @@ class GuideDoc(object):
         for n in self._nodes:
             print()
             print('@' + ('-' * (LINE_MAXLEN - 1)))
-            for l in n.write(doc_name=self.getname(), node_docs=node_docs):
+            for l in n.format(doc_name=self.getname(), node_docs=node_docs):
                 print(l)
