@@ -23,4 +23,4 @@ if w:
 guide_set.parseindex()
 
 print("INDEX:", file=sys.stderr)
-print(guide_set.formatindex(), file=sys.stderr)
+print('\n'.join(guide_set.formatindex()), file=sys.stderr)

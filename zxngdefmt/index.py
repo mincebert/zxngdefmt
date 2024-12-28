@@ -202,4 +202,4 @@ class GuideIndex(dict):
             prev_term_text = term_text
             prev_term_alphanum = term_alphanum
 
-        return '\n'.join(index_lines)
+        return index_lines
