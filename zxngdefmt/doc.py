@@ -5,7 +5,6 @@
 
 
 import re
-import sys
 
 from .index import GuideIndex
 from .node import GuideNode, LINE_MAXLEN
