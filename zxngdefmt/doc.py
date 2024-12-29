@@ -116,6 +116,31 @@ class GuideDoc(object):
         return None
 
 
+    def getnodenames(self):
+        """Return a list containing the names of all the nodes in the
+        document in order.
+        """
+
+        return [ node.name for node in self._nodes ]
+
+
+    def getwarnings(self):
+        """Returns the list of warnings encountered when building the
+        document.  This will include document-level warnings, as well as
+        warnings from all nodes in the document.
+
+        If there are no warnings, an empty list will be returned.
+        """
+
+        warnings = self._warnings.copy()
+
+        for node in self._nodes:
+            warnings.extend([ f"node: @{node.name} {warning}"
+                                  for warning in node.getwarnings() ])
+
+        return warnings
+
+
     def readfile(self, filename):
         """Read a source NextGuide file, parsing document-level comamnds
         and nodes and storing it as this document.
@@ -241,28 +266,6 @@ class GuideDoc(object):
         # check node-level links for all nodes in the document
         for node in self._nodes:
             node.checklinks(node_names)
-
-
-    def getnodenames(self):
-        """Return a list containing the names of all the nodes in the
-        document.
-        """
-
-        return [ node.name for node in self._nodes ]
-
-
-    def getwarnings(self):
-        """Returns the list of warnings encountered when building the
-        document.  The list will be empty if there were no warnings.
-        """
-
-        warnings = self._warnings.copy()
-
-        for node in self._nodes:
-            warnings.extend([ f"node: @{node.name} {warning}"
-                                  for warning in node.getwarnings() ])
-
-        return warnings
 
 
     def parseindex(self):
