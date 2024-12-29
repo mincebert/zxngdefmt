@@ -7,7 +7,7 @@
 import re
 import sys
 
-from .node import GuideNode
+from .node import GuideNode, LINE_MAXLEN
 
 from .token import (
     IGNORE_RE,
@@ -298,5 +298,5 @@ class GuideDoc(object):
         for n in self._nodes:
             print()
             print('@' + ('-' * (80 - 1)))
-            for l in n.format(doc_name=self.getname(), node_docs=node_docs):
+            for l in n.format(doc_name=self.getname(), node_docs=node_docs, line_maxlen=LINE_MAXLEN):
                 print(l)
