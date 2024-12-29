@@ -296,7 +296,12 @@ class GuideDoc(object):
 
 
     def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN):
-        """TODO - just print the document and nodes raw
+        """Format the document for output, with the document commands
+        first, then the nodes, handling word wrap for the specified
+        specified maximum line length, and qualifying links with
+        document names, if required.
+
+        The output is returned as a list of lines as strings.
         """
 
         # initialise the output as an empty list of lines
@@ -319,4 +324,5 @@ class GuideDoc(object):
                                       node_docs=node_docs,
                                       line_maxlen=LINE_MAXLEN))
 
+        # return the list of formatted lines
         return output

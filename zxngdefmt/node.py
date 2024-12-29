@@ -215,8 +215,11 @@ class GuideNode(object):
 
 
     def format(self, *, doc_name=None, node_docs={}, line_maxlen):
-        """Return the node as a list of lines of markup, formatted with
-        word wrap for the specified maximum line length.
+        """Format the node for output, handling word wrap for the
+        specified maximum line length, and qualifying links with
+        document names, if required.
+
+        The output is returned as a list of lines as strings.
         """
 
 
