@@ -11,7 +11,7 @@ from .node import GuideNode
 
 from .token import (
     IGNORE_RE,
-    NODAL_CMDS_RE,
+    NODE_LINK_CMDS_RE,
     NODE_CMDS_RE,
 )
 
@@ -48,31 +48,34 @@ DOC_CMDS_RE = re.compile(
 
 
 
+# --- classes ---
+
+
 
 class GuideDoc(object):
-    """Class representing an entire NextGuide document.
-
-    TODO
+    """Class representing a NextGuide document, which is a single file
+    containing one or more nodes (pages).
     """
 
 
     def __init__(self, filename):
-        """Initialise a new raw document object, optionally reading in a
-        source guide file.
+        """Initialise a new document, reading in data from a file.
         """
 
         super().__init__()
 
-        # initialise the document
+        # store the name of this document from the filename
+        self._setname(filename)
+
+        # initialise document-level commands
         self._cmds = {}
+
+        # initialise the list of nodes
         self._nodes = []
 
-        # initialise a list of warnings encountered when building the
+        # initialise a list of warnings encountered when processing this
         # document
         self._warnings = []
-
-        # store the name of this document
-        self.setname(filename)
 
         # read the file, set the default links and check it
         self.readfile(filename)
@@ -81,7 +84,7 @@ class GuideDoc(object):
         self.parseindex()
 
 
-    def setname(self, name):
+    def _setname(self, name):
         """Sets the name of the guide.  This will 'normalise' the
         supplied name, removing '.gde' from the end, if it is present;
         if not, the complete name will be stored.
@@ -94,8 +97,8 @@ class GuideDoc(object):
 
 
     def getname(self):
-        """Return the name of the guide for use as the document part of
-        links from other guides.
+        """Return the name of the guide.  This can be used as the
+        document name when making links from other guide documents.
         """
 
         return self._name
@@ -114,17 +117,17 @@ class GuideDoc(object):
 
 
     def readfile(self, filename):
-        """Read a source NextGuide file and store it as a raw document.
-
-        TODO
+        """Read a source NextGuide file, parsing document-level comamnds
+        and nodes and storing it as this document.
         """
 
-
+        # start with no current node
         current_node = None
 
+        # open the source file and work through the lines in it
         with open(filename) as f:
             for l in f:
-                # strip any trailing whitespace
+                # strip any trailing whitespace as we never want that
                 l = l.rstrip()
 
                 # skip lines we want to ignore
@@ -134,65 +137,87 @@ class GuideDoc(object):
                 # match document-level commands
                 m = DOC_CMDS_RE.match(l)
                 if m:
-                    if not current_node:
-                        self._cmds[m.group("cmd")] = m.group("value")
-                    else:
+                    if current_node:
+                        # we got a document-level command but are in a
+                        # node - record a warning and ignore it
                         current_node.addwarning(
                             f"document token: '{l}' in node - ignored")
 
+                    else:
+                        # we're not in a node, record the command in the
+                        # document
+                        self._cmds[m.group("cmd")] = m.group("value")
+
+                    # skip to the next line in the file
                     continue
 
-                # match the start of a new node
+                # try to match the @node command at the start of a new node
                 m = re.match(NODE_CMDS_RE, l)
                 if m:
-                    # append the current node, if we have one
+                    # if we've got a node we're building, we're done
+                    # with that, so append it to the list of nodes in
+                    # this document
                     if current_node:
                         self._nodes.append(current_node)
 
-                    # start a new node
+                    # start a new node and skip to the next line in the file
                     current_node = GuideNode(m.group("name"))
                     continue
 
-                # match node-level commands
-                m = re.match(NODAL_CMDS_RE, l)
+                # try to match node-level commands linking to another node
+                m = re.match(NODE_LINK_CMDS_RE, l)
                 if m:
+                    # store the link and skip to the next line in the file
                     current_node.setlink(*m.group("link", "name"))
                     continue
 
-                # anything else is a line of markup data in the node
+                # anything else is a line of markup data in the node -
+                # we just store that as is and format it when required
                 current_node.appendline(l)
 
-        # if we have a node we're assembling, append that
+        # we're finished with the file - if we have a node we're
+        # assembling, append that to list of nodes in this document
         if current_node:
             self._nodes.append(current_node)
 
 
     def setdefaultlinks(self):
-        """Complete any missing data for inter-node links using
+        """Complete any missing inter-node links using some assumed
         defaults:
 
-        - prev = the previous node in the document
+        prev = the previous node in the document
 
-        - next = the next node in the document
+        next = the next node in the document
 
-        - toc = the most recently-defined 'toc' entry
+        toc = the most recently-defined 'toc' entry
         """
 
-        # fill in missing 'previous' and 'toc' (contents) links:
+
+        # work through the nodes in order, filling in missing 'prev' and
+        # 'toc' links from the previous node
+
         prev_node = None
         toc_node = None
+
         for node in self._nodes:
             # set missing links for this node
             node.setdefaultlink("prev", prev_node)
             node.setdefaultlink("toc", toc_node)
 
-            # store the information about this node to use in subsequent
-            # ones, if required
+            # the default previous link for the next one is this node
             prev_node = node.name
+
+            # the default toc link is the one we used for this node
+            # (which may have been explicitly specified, or set the same
+            # as the previous node)
             toc_node = node.getlink("toc")
 
-        # fill in missing 'next' links
+
+        # work through the nodes in REVERSE order, filling in the 'next'
+        # link from the next node
+
         next_node = None
+
         for node in reversed(self._nodes):
             node.setdefaultlink("next", next_node)
             next_node = node.name
@@ -203,28 +228,36 @@ class GuideDoc(object):
         broken (to nodes which do not exist).
         """
 
-        def checknodallink(link):
-            """Check a particular nodal link exists.
+
+        def checknodelink(node, link_type):
+            """Check a particular node link exists.
             """
 
-            link_name = node.getlink(link)
-            if (link_name
-                and all(node.name != link_name for node in self._nodes)):
+            link_name = node.getlink(link_type)
 
+            # if link is defined and no node exists with that name,
+            # record a warning
+            if link_name and (link_name not in node_names):
                 self._warnings.append(
-                    f"node: @{node.name} link: {link} to non-existent"
-                    f" node: @{link_name}")
+                    f"node: @{node.name} link: {link_type} to"
+                    f" non-existent node: @{link_name}")
 
-        # check document-level links
-        index = self._cmds.get("index")
-        if index and all(node.name != index for node in self._nodes):
-            self._warnings.append(f"index link to non-existent node: @{index}")
 
-        # check node-level links
+        # get the list of node names as we're going to use it several
+        # times
+        node_names = self.getnodenames()
+
+        # record a warning if the index node is defined but does not exist
+        index_name = self._cmds.get("index")
+        if index_name and (index_name not in node_names):
+            self._warnings.append(
+                f"index link to non-existent node: @{index_name}")
+
+        # check node-level links for all nodes in the document
         for node in self._nodes:
-            checknodallink("prev")
-            checknodallink("next")
-            checknodallink("toc")
+            checknodelink(node, "prev")
+            checknodelink(node, "next")
+            checknodelink(node, "toc")
 
 
     def getnodenames(self):

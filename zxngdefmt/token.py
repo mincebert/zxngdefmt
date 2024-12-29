@@ -45,11 +45,11 @@ TOKEN_RE = (r"(?P<token>"
             + r')'
             + r"(?P<remainder>.*)")
 
-# start of a node
+# start of a new node
 NODE_CMDS_RE = r"@node (?P<name>\S+)"
 
-# matching a linked node token (for constructing node links)
-NODAL_CMDS_RE = r"@(?P<link>(node|prev|next|toc)) (?P<name>\S+)"
+# nodal commands for a linked node token
+NODE_LINK_CMDS_RE = r"@(?P<link>(node|prev|next|toc)) (?P<name>\S+)"
 
 # lines to ignore:
 #

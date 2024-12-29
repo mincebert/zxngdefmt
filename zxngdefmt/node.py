@@ -221,7 +221,7 @@ class GuideNode(object):
                 output.append(f"@{link} {self._links[link]}")
 
 
-        # --- local functions used in this method ---
+        # --- subfunctions ---
 
 
         def writeline():
@@ -229,7 +229,7 @@ class GuideNode(object):
             output lines and start a new one.
             """
 
-            nonlocal output, line_markup, line_render, pre_space
+            nonlocal line_markup, line_render, pre_space
 
             if line_markup:
                 output.append(line_markup)
@@ -253,7 +253,8 @@ class GuideNode(object):
             word and the next and is recorded in pre_space.
             """
 
-            nonlocal line_markup, line_render, word_markup, word_render, pre_space
+            nonlocal line_markup, line_render, word_markup, word_render
+            nonlocal pre_space
 
             # if no line or word is currently being assembled, we have
             # nothing to do
@@ -322,7 +323,7 @@ class GuideNode(object):
             return '@{"' + text + '" LINK ' + (fixed_target or target) + '}'
 
 
-        # --- body ---
+        # --- method ---
 
 
         # go through the lines in this node
