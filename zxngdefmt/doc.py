@@ -295,17 +295,28 @@ class GuideDoc(object):
         self.index = index_node.parseindex()
 
 
-    def print(self, *, node_docs={}):
+    def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN):
         """TODO - just print the document and nodes raw
         """
 
-        for c in DOC_CMDS:
-            if c in self._cmds:
-                print(f"@{c}"
-                      + (f" {self._cmds[c]}" if c in self._cmds else ""))
+        # initialise the output as an empty list of lines
+        output = []
 
-        for n in self._nodes:
-            print()
-            print('@' + ('-' * (80 - 1)))
-            for l in n.format(doc_name=self.getname(), node_docs=node_docs, line_maxlen=LINE_MAXLEN):
-                print(l)
+        # go through the document commands and record them in the
+        # output, if they are present
+        for cmd in DOC_CMDS:
+            if cmd in self._cmds:
+                output.append(
+                    f"@{cmd} {self._cmds[cmd]}" if cmd in self._cmds else '')
+
+        # go through the nodes in the document in order
+        for node in self._nodes:
+            # add a line of dashes before this node as a separator
+            output.append('@' + ('-' * (line_maxlen - 1)))
+
+            # format this node and add the lines to the output
+            output.extend(node.format(doc_name=self.getname(),
+                                      node_docs=node_docs,
+                                      line_maxlen=LINE_MAXLEN))
+
+        return output

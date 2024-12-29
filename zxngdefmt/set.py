@@ -91,4 +91,4 @@ class GuideSet(object):
     def print(self):
         for doc in self._docs:
             print(f"=> DOC: {doc.getname()}")
-            doc.print(node_docs=self._node_docs)
+            print('\n'.join(doc.format(node_docs=self._node_docs)))
