@@ -5,7 +5,7 @@
 import re
 
 from .token import (
-    LINK_RE,
+    LINK_RESTR,
     renderstring,
 )
 
@@ -21,16 +21,16 @@ TERM_GAP = 3
 
 # TODO
 
-INDEX_RE = (r'\s{,2}'
+INDEX_RE = re.compile(r'\s{,2}'
 
-            + '('
-            + LINK_RE
-            + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
-            + r")?"
+                      + '('
+                      + LINK_RESTR
+                      + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
+                      + r")?"
 
-            + r"(\s{3,}(?P<remainder>.+))?")
+                      + r"(\s{3,}(?P<remainder>.+))?")
 
-INDEX_REF_RE = LINK_RE + r"(,\s+(?P<remainder>.+))?"
+INDEX_REF_RE = re.compile(LINK_RESTR + r"(,\s+(?P<remainder>.+))?")
 
 
 
@@ -76,7 +76,7 @@ class GuideIndex(dict):
 
 
     def parseline(self, line, prev_term=None):
-        m = re.match(INDEX_RE, line)
+        m = INDEX_RE.match(line)
         if not m:
             raise ValueError("cannot parse link from line: " + line)
 
@@ -96,7 +96,7 @@ class GuideIndex(dict):
 
         refs_dict = {}
         while refs:
-            m = re.match(INDEX_REF_RE, refs)
+            m = INDEX_REF_RE.match(refs)
             if not m:
                 break
             ref_text, ref_target, refs = (

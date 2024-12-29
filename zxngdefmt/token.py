@@ -15,48 +15,54 @@ import re
 
 
 
-# <?>_RE = string
+# <?>_RESTR = string
+# <?>_RE = re.Pattern
 #
 # Regular expressions to match various bits of NextGuide markup.
 
 
 # link to another node
-LINK_RE = r'@{ *"(?P<link_text>[^"]+)" LINK (?P<link_target>[^ }]+) *}'
+LINK_RESTR = r'@{ *"(?P<link_text>[^"]+)" LINK (?P<link_target>[^ }]+) *}'
+LINK_RE = re.compile(LINK_RESTR)
 
 # formatting attribute
-ATTR_RE = r"@{\w+}"
+ATTR_RESTR = r"@{\w+}"
+ATTR_RE = re.compile(ATTR_RESTR)
 
 # literal characters
-LITERALTOKEN_RE = r"@(?P<char>[^{])"
+LITERALTOKEN_RESTR = r"@(?P<char>[^{])"
+LITERALTOKEN_RE = re.compile(LITERALTOKEN_RESTR)
 
 # plain (unformatted) word (as opposed to markup)
-WORD_RE = r"[^@ ]+"
+WORD_RESTR = r"[^@ ]+"
 
 # one or more spaces
-SPACE_RE = r"(?P<space> +)"
+SPACE_RESTR = r"(?P<space> +)"
+SPACE_RE = re.compile(SPACE_RESTR)
 
 # match any type of markup token or word or block of spaces
-TOKEN_RE = (r"(?P<token>"
-            + LINK_RE
-            + r'|' + ATTR_RE
-            + r'|' + LITERALTOKEN_RE
-            + r'|' + WORD_RE
-            + r'|' + SPACE_RE
-            + r')'
-            + r"(?P<remainder>.*)")
+TOKEN_RE = re.compile(r"(?P<token>"
+                      + LINK_RESTR
+                      + r'|' + ATTR_RESTR
+                      + r'|' + LITERALTOKEN_RESTR
+                      + r'|' + WORD_RESTR
+                      + r'|' + SPACE_RESTR
+                      + r')'
+                      + r"(?P<remainder>.*)")
 
 # start of a new node
-NODE_CMDS_RE = r"@node (?P<name>\S+)"
+NODE_CMDS_RE = re.compile(r"@node (?P<name>\S+)")
 
 # nodal commands for a linked node token
-NODE_LINK_CMDS_RE = r"@(?P<link>(node|prev|next|toc)) (?P<name>\S+)"
+NODE_LINK_CMDS_RE = re.compile(
+                        r"@(?P<link>(node|prev|next|toc)) (?P<name>\S+)")
 
 # lines to ignore:
 #
 # - a token with hyphens (a separator between nodes), or
 #
 # - a remark command
-IGNORE_RE = r"@(-+|rem\s)"
+IGNORE_RE = re.compile(r"@(-+|rem\s)")
 
 
 # LITERALLINE_RE = string
@@ -64,7 +70,7 @@ IGNORE_RE = r"@(-+|rem\s)"
 # Regular expression to match lines which must be included in the output
 # guide literally (i.e. without reformatting).
 
-LITERALLINE_RE = (
+LITERALLINE_RE = re.compile(
     r'('
 
     # lines with leading spaces
@@ -80,7 +86,7 @@ LITERALLINE_RE = (
     + r"|@{[cr]}"
 
     # lines consisting solely of a single link
-    + r'|' + LINK_RE + r'$'
+    + r'|' + LINK_RESTR + r'$'
 
     + r')')
 
@@ -101,13 +107,13 @@ def rendertoken(t):
     """
 
     # if the token is a link, use the displayed text field
-    m = re.match(LINK_RE, t)
+    m = LINK_RE.match(t)
     if m:
         return m["link_text"]
 
     # if the token is a literal character, convert that to the displayed
     # character
-    m = re.match(LITERALTOKEN_RE, t)
+    m = LITERALTOKEN_RE.match(t)
     if m:
         c = m["char"]
 
@@ -120,7 +126,7 @@ def rendertoken(t):
             return c
 
     # attribute formatting codes don't render to anything displayed
-    m = re.match(ATTR_RE, t)
+    m = ATTR_RE.match(t)
     if m:
         return ''
 
@@ -142,7 +148,7 @@ def renderstring(s):
     # go through the string matching tokens (markup, literal or spaces)
     remainder = s
     while remainder:
-        m = re.match(TOKEN_RE, remainder)
+        m = TOKEN_RE.match(remainder)
 
         # if we couldn't match a token, something has gone irretrievably
         # wrong (probably with the regexp)

@@ -338,7 +338,7 @@ class GuideNode(object):
 
             # if the line is blank, or is one that is to be included
             # literally, just add that to the document
-            if (line == '') or re.match(LITERALLINE_RE, line):
+            if (line == '') or LITERALLINE_RE.match(line):
                 # finish the current line and append it (if it has
                 # something in it)
                 writeline()

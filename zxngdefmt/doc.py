@@ -131,7 +131,7 @@ class GuideDoc(object):
                 l = l.rstrip()
 
                 # skip lines we want to ignore
-                if re.match(IGNORE_RE, l):
+                if IGNORE_RE.match(l):
                     continue
 
                 # match document-level commands
@@ -152,7 +152,7 @@ class GuideDoc(object):
                     continue
 
                 # try to match the @node command at the start of a new node
-                m = re.match(NODE_CMDS_RE, l)
+                m = NODE_CMDS_RE.match(l)
                 if m:
                     # if we've got a node we're building, we're done
                     # with that, so append it to the list of nodes in
@@ -165,7 +165,7 @@ class GuideDoc(object):
                     continue
 
                 # try to match node-level commands linking to another node
-                m = re.match(NODE_LINK_CMDS_RE, l)
+                m = NODE_LINK_CMDS_RE.match(l)
                 if m:
                     # store the link and skip to the next line in the file
                     current_node.setlink(*m.group("link", "name"))
