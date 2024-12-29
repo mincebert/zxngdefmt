@@ -228,21 +228,6 @@ class GuideDoc(object):
         broken (to nodes which do not exist).
         """
 
-
-        def checknodelink(node, link_type):
-            """Check a particular node link exists.
-            """
-
-            link_name = node.getlink(link_type)
-
-            # if link is defined and no node exists with that name,
-            # record a warning
-            if link_name and (link_name not in node_names):
-                self._warnings.append(
-                    f"node: @{node.name} link: {link_type} to"
-                    f" non-existent node: @{link_name}")
-
-
         # get the list of node names as we're going to use it several
         # times
         node_names = self.getnodenames()
@@ -255,9 +240,7 @@ class GuideDoc(object):
 
         # check node-level links for all nodes in the document
         for node in self._nodes:
-            checknodelink(node, "prev")
-            checknodelink(node, "next")
-            checknodelink(node, "toc")
+            node.checklinks(node_names)
 
 
     def getnodenames(self):

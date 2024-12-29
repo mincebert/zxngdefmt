@@ -97,45 +97,46 @@ class GuideNode(object):
         return f"GuideNode(@{self.name})"
 
 
-    def setlink(self, link, target):
+    def setlink(self, type_, target):
         """Unconditionally set the link to another node (prev/next/toc).
         This is used when a node explicitly sets the link.
         """
 
         # check the link is of a valid type
-        if link not in _NODE_LINK_TYPES:
-            return ValueError(f"node: @{self.name} set invalid link type:"
-                              f" {link}")
+        if type_ not in _NODE_LINK_TYPES:
+            return ValueError(
+                f"node: @{self.name} set invalid link type: {type_}")
 
-        self._links[link] = target
+        self._links[type_] = target
 
 
-    def setdefaultlink(self, link, target):
+    def setdefaultlink(self, type_, target):
         """Set the link to another node only if this link is not yet
         defined.  This used when the entire document is completed and
         the missing links are filled in.
         """
 
         # check the link is of a valid type
-        if link not in _NODE_LINK_TYPES:
-            return ValueError(f"node: @{self.name} set default invalid link"
-                              f" type: {link}")
+        if type_ not in _NODE_LINK_TYPES:
+            return ValueError(
+                f"node: @{self.name} set default invalid link type:"
+                f" {type_}")
 
         if target:
-            self._links.setdefault(link, target)
+            self._links.setdefault(type_, target)
 
 
-    def getlink(self, link):
+    def getlink(self, type_):
         """Return the link to the specified target from this node, or
         None, if it is not defined.
         """
 
         # check the link is of a valid type
-        if link not in _NODE_LINK_TYPES:
-            return ValueError(f"node: @{self.name} get invalid link type:"
-                              f" {link}")
+        if type_ not in _NODE_LINK_TYPES:
+            return ValueError(
+                f"node: @{self.name} get invalid link type: {type_}")
 
-        return self._links.get(link)
+        return self._links.get(type_)
 
 
     def addwarning(self, warning):
@@ -157,6 +158,40 @@ class GuideNode(object):
         """
 
         self._lines.append(l)
+
+
+    def checklink(self, link_type, node_names):
+        """Check the target of a particular node link type exists in the
+        supplied list of node names (from a document or set), returning
+        False iff it is defined and does not.
+
+        A warning will also be recorded, if it does not.
+        """
+
+        link_name = self.getlink(link_type)
+
+        # if link is defined and no node exists with that name,
+        # record a warning
+        exists = (not link_name) or (link_name in node_names)
+        if not exists:
+            self.addwarning(
+                f"link type: {link_type} to non-existent node: @{link_name}")
+
+        return exists
+
+
+    def checklinks(self, node_names):
+        """Check all the node link types for this document exist in the
+        supplied list of node names (from a document or set).  False
+        will be returned iff any are defined and are missing, as well as
+        warnings recorded.
+        """
+
+        all_exist = True
+        for link_type in _NODE_LINK_TYPES:
+            all_exist &= self.checklink(link_type, node_names)
+
+        return all_exist
 
 
     def parseindex(self):
