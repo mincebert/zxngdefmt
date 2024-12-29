@@ -280,9 +280,8 @@ class GuideDoc(object):
 
 
     def parseindex(self):
-        """Parse the index node of the document, if it exists.  Store
-
-        TODO
+        """Parse the index node of the document, if it exists, into a
+        GuideIndex.  Stores this as .index in the object.
         """
 
         # initialise the index as empty
