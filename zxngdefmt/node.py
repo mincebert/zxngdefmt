@@ -104,8 +104,7 @@ class GuideNode(object):
 
         # check the link is of a valid type
         if type_ not in _NODE_LINK_TYPES:
-            return ValueError(
-                f"node: @{self.name} set invalid link type: {type_}")
+            return ValueError(f"set invalid link type: {type_}")
 
         self._links[type_] = target
 
@@ -118,9 +117,7 @@ class GuideNode(object):
 
         # check the link is of a valid type
         if type_ not in _NODE_LINK_TYPES:
-            return ValueError(
-                f"node: @{self.name} set default invalid link type:"
-                f" {type_}")
+            return ValueError(f"set default invalid link type: {type_}")
 
         if target:
             self._links.setdefault(type_, target)
@@ -133,8 +130,7 @@ class GuideNode(object):
 
         # check the link is of a valid type
         if type_ not in _NODE_LINK_TYPES:
-            return ValueError(
-                f"node: @{self.name} get invalid link type: {type_}")
+            return ValueError(f"get invalid link type: {type_}")
 
         return self._links.get(type_)
 
@@ -160,7 +156,7 @@ class GuideNode(object):
         self._lines.append(l)
 
 
-    def checklink(self, link_type, node_names):
+    def checklink(self, type_, node_names):
         """Check the target of a particular node link type exists in the
         supplied list of node names (from a document or set), returning
         False iff it is defined and does not.
@@ -168,14 +164,14 @@ class GuideNode(object):
         A warning will also be recorded, if it does not.
         """
 
-        link_name = self.getlink(link_type)
+        link_name = self.getlink(type_)
 
         # if link is defined and no node exists with that name,
         # record a warning
         exists = (not link_name) or (link_name in node_names)
         if not exists:
             self.addwarning(
-                f"link type: {link_type} to non-existent node: @{link_name}")
+                f"link type: {type_} to non-existent node: @{link_name}")
 
         return exists
 
