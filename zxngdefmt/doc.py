@@ -7,6 +7,7 @@
 import re
 import sys
 
+from .index import GuideIndex
 from .node import GuideNode, LINE_MAXLEN
 
 from .token import (
@@ -269,24 +270,29 @@ class GuideDoc(object):
 
 
     def parseindex(self):
-        """Parse the index node of the document, if it exists.
+        """Parse the index node of the document, if it exists.  Store
 
         TODO
         """
 
-        self.index = {}
+        # initialise the index as empty
+        self.index = GuideIndex()
 
+        # get the name of the index node defined for this document - if
+        # one was not defined, return, leaving the index empty
         index_name = self._cmds.get("index")
         if not index_name:
             return
 
-        print("IndexName", index_name, file=sys.stderr)
+        # get the index node itself - if it is not found, return,
+        # leaving the index empty
         index_node = self.getnode(index_name)
+        if not index_node:
+            return
 
-        if index_node:
-            self.index = index_node.parseindex()
-
-        print(self.index, file=sys.stderr)
+        # parse the node as an index and store the returned GuideIndex
+        # in the document
+        self.index = index_node.parseindex()
 
 
     def print(self, *, node_docs={}):
