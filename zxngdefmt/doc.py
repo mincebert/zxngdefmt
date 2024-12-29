@@ -124,6 +124,13 @@ class GuideDoc(object):
         return [ node.name for node in self._nodes ]
 
 
+    def addwarning(self, warning):
+        """Add a warning to the list of warnings about this document.
+        """
+
+        self._warnings.append(warning)
+
+
     def getwarnings(self):
         """Returns the list of warnings encountered when building the
         document.  This will include document-level warnings, as well as
@@ -132,12 +139,17 @@ class GuideDoc(object):
         If there are no warnings, an empty list will be returned.
         """
 
+        # copy the list of warnings as we want to extend and then return
+        # it, but not affect the original list
         warnings = self._warnings.copy()
 
+        # extend the copied list with the warnings from each node in the
+        # document
         for node in self._nodes:
             warnings.extend([ f"node: @{node.name} {warning}"
                                   for warning in node.getwarnings() ])
 
+        # return the composite list of warnings
         return warnings
 
 
@@ -260,8 +272,7 @@ class GuideDoc(object):
         # record a warning if the index node is defined but does not exist
         index_name = self._cmds.get("index")
         if index_name and (index_name not in node_names):
-            self._warnings.append(
-                f"index link to non-existent node: @{index_name}")
+            self.addwarning(f"index link to non-existent node: @{index_name}")
 
         # check node-level links for all nodes in the document
         for node in self._nodes:
