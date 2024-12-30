@@ -156,8 +156,8 @@ class GuideIndex(dict):
 
             if term.get("target"):
                 line_render = term_text
-                line_markup = linkcmd(
-                    term_text, node_docs.fixlink(doc_name, term["target"]))
+                #line_markup = linkcmd(
+                #    term_text, node_docs.fixlink(doc_name, term["target"]))
             else:
                 line_render = term_text
                 line_markup = term_text

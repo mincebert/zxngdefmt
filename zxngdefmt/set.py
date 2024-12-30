@@ -83,7 +83,7 @@ class GuideSet(object):
         return warnings
 
 
-    def makeindexes(self, line_maxlen=LINE_MAXLEN):
+    def makecommonindex(self, line_maxlen=LINE_MAXLEN):
         """Make an overall index for the set, merging together the
         index in each document.
         """

@@ -73,15 +73,18 @@ class GuideNodeDocs(dict):
         the caller can use this to correct the link or flag up an error.
         """
 
-        # check if the link is not already qualified with a document name ...
-        if '/' not in target:
-            # if the target node was not found, return None
-            if target not in self:
-                return
+        # if the link is already qualified with a document name, assume
+        # it's correct and leave it alone
+        if '/' in target:
+            return target
+        
+        # if the target node was not found, return None
+        if target not in self:
+            return
 
-            # if the target node is in this document - return it unqualified
-            if self[target] == doc_name:
-                return target
+        # if the target node is in this document, return it unqualified
+        if self[target] == doc_name:
+            return target
 
         # the target is in another document - qualify it
         return self[target] + '/' + target
