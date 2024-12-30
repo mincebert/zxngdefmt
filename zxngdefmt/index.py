@@ -193,7 +193,8 @@ class GuideIndex(dict):
                 else:
                     line_first = False
 
-                ref_link_fix = node_docs.fixlink(doc_name, refs[ref])
+                #ref_link_fix = node_docs.fixlink(doc_name, refs[ref])
+                ref_link_fix = refs[ref]
 
                 if not ref_link_fix:
                     self._warnings.append(
