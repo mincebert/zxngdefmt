@@ -371,7 +371,7 @@ class GuideNode(object):
             # if the target was not found, record a warning
             if fixed_target is None:
                 self.addwarning(
-                    f"link: {text} target: @{target} does not exist")
+                    f"link: '{text}' target: @{target} does not exist")
 
             # return the fixed link or, if the target was not found,
             # return the target anyway

@@ -124,6 +124,10 @@ class GuideDoc(object):
         return [ node.name for node in self._nodes ]
 
 
+    def getindexnode(self):
+        return self.getnode(self._cmds.get("index"))
+            
+
     def addwarning(self, warning):
         """Add a warning to the list of warnings about this document.
         """

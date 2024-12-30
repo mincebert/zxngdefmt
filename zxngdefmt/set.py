@@ -83,23 +83,28 @@ class GuideSet(object):
         return warnings
 
 
-    def makeindex(self):
+    def makeindexes(self, line_maxlen=LINE_MAXLEN):
         """Make an overall index for the set, merging together the
         index in each document.
         """
 
-        # initialise an empty index
+        # initialise an empty index then merge each document's index
+        # into it, creating a composite index
         self.index = GuideIndex()
-
-        # go through each document in the set, merging their index into
-        # the set one
         for doc in self._docs:
             self.index.merge(doc.index)
+
+        for doc in self._docs:
+            index_node = doc.getindexnode()
+            if index_node:
+                index_node._lines = self.index.format(doc.getname(), self._node_docs, line_maxlen)
 
 
     def formatindex(self, line_maxlen=LINE_MAXLEN):
         for doc in self._docs:
-            return self.index.format(doc.getname(), self._node_docs, line_maxlen)
+            index_node = doc.getindexnode()
+            if index_node:
+                index_node._lines = self.index.format(doc.getname(), self._node_docs, line_maxlen)
 
 
     def print(self):

@@ -20,7 +20,7 @@ if w:
     for w1 in w:
         print('-', w1, file=sys.stderr)
 
-guide_set.makeindex()
+guide_set.makeindexes()
 
 print("INDEX:", file=sys.stderr)
-print('\n'.join(guide_set.formatindex()), file=sys.stderr)
+print('\n'.join(guide_set.index.format(guide_set._docs[0].getname(), guide_set._node_docs, line_maxlen=80)), file=sys.stderr)
