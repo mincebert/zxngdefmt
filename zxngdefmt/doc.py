@@ -126,7 +126,7 @@ class GuideDoc(object):
 
     def getindexnode(self):
         return self.getnode(self._cmds.get("index"))
-            
+
 
     def addwarning(self, warning):
         """Add a warning to the list of warnings about this document.

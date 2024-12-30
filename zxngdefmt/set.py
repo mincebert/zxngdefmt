@@ -84,27 +84,27 @@ class GuideSet(object):
 
 
     def makecommonindex(self, line_maxlen=LINE_MAXLEN):
-        """Make an overall index for the set, merging together the
-        index in each document.
+        """Make an consolidated index for the set, merging together the
+        indices in each document.
         """
 
         # initialise an empty index then merge each document's index
-        # into it, creating a composite index
+        # into it, creating a consolidated ones
         self.index = GuideIndex()
         for doc in self._docs:
             self.index.merge(doc.index)
 
+        # render out the consolidated index to a list of formatted lines
+        common_index_lines = self.index.format(line_maxlen)
+
+        # replace the index node's lines in each document in the set
+        # with the consolidated version
+        #
+        # TODO - warnings when index page is missing or different node
         for doc in self._docs:
             index_node = doc.getindexnode()
             if index_node:
-                index_node._lines = self.index.format(doc.getname(), self._node_docs, line_maxlen)
-
-
-    def formatindex(self, line_maxlen=LINE_MAXLEN):
-        for doc in self._docs:
-            index_node = doc.getindexnode()
-            if index_node:
-                index_node._lines = self.index.format(doc.getname(), self._node_docs, line_maxlen)
+                index_node.replacelines(common_index_lines)
 
 
     def print(self):

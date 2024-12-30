@@ -133,7 +133,7 @@ class GuideIndex(dict):
             self_term["refs"].update(merge_term["refs"])
 
 
-    def format(self, doc_name, node_docs, line_maxlen, term_width=TERM_WIDTH, term_gap=TERM_GAP):
+    def format(self, line_maxlen, term_width=TERM_WIDTH, term_gap=TERM_GAP):
         prev_term_text = None
         prev_term_alphanum = None
 

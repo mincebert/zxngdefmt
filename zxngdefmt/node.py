@@ -77,7 +77,7 @@ class GuideNodeDocs(dict):
         # it's correct and leave it alone
         if '/' in target:
             return target
-        
+
         # if the target node was not found, return None
         if target not in self:
             return
@@ -93,8 +93,6 @@ class GuideNodeDocs(dict):
 
 class GuideNode(object):
     """Represents a node (page in a NextGuide document).
-
-    TODO
     """
 
 
@@ -178,6 +176,13 @@ class GuideNode(object):
         """
 
         self._lines.append(l)
+
+
+    def replacelines(self, lines):
+        """Replace all the lines in the body of a node with a new set.
+        """
+
+        self._lines = lines
 
 
     def checklink(self, type_, node_names):
