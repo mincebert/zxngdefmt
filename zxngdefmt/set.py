@@ -129,11 +129,12 @@ class GuideSet(object):
         # work through the documents in the set, replacing (or adding)
         # the index node with the consolidated version
         for doc in self._docs:
-            # get the current index node
+            # get the current index node (or None, if there isn't one)
             index_node = doc.getindexnode()
 
-            # if we haven't got a common index node name yet, initialise
-            # this from the one in this document, or pick a default
+            # if we haven't got a common index node name yet (which
+            # means we're processing the first document in the set),
+            # we need to set that somehow ...
             if not common_index_name:
                 if index_node:
                     # we have an index node in this document - use the
@@ -141,50 +142,52 @@ class GuideSet(object):
                     common_index_name = index_node.name
 
                 else:
-                    # we don't have an index node defined for this
+                    # we DON'T have an index node defined for this
                     # document - use a default and add a warning
 
                     common_index_name = DEFAULT_INDEX_NAME
 
-                    self.addwarning("no index node defined in first"
-                                    " document of a set - assuming"
-                                    f"default: @{common_index_name}")
+                    self.addwarning(
+                        "no index node defined in first document of a"
+                        f"set - assuming default: @{common_index_name}")
 
 
-                    # check we don't already have a node with the same
-                    # name, but obviously isn't the index node - if we
-                    # do, replace that instead, but add a warning to it
-
-                    existing_node = doc.getnode(common_index_name)
-
-                    if existing_node:
-                        existing_node.addwarning(
-                            "name clashes with common index name -"
-                            " replacing possible non-index node")
-
-                        index_node = existing_node
-
-                    if index_node.name != common_index_name:
-                        doc.addwarning(
-                            f"index node: @{index_node.name} is"
-                            " inconsistent with common index node name:"
-                            f" @{common_index_name}")
-
-
-            # if we didn't find an existing node to replace, create a
-            # new one and set the index node for the document
+            # if this document doesn't have an index node, we need to
+            # create one and will use the common (first or default) name
+            # for it ...
             if not index_node:
-                index_node = GuideNode(common_index_name)
-                doc.setindexnode(index_node)
+                existing_node = doc.getnode(common_index_name)
 
-            # we do have an existing index node - add a warning if its
-            # name is different from the common name
+                if existing_node:
+                    # we have an existing node with the common name -
+                    # add a warning and use it, which will replace its
+                    # contents with our common index
+
+                    existing_node.addwarning(
+                        "existing node's name clashes with common"
+                        " index name - replacing contents of possible"
+                        " non-index node")
+
+                    index_node = existing_node
+
+                else:
+                    # we DON'T have an existing node with the common
+                    # name - create a new node with that name, add it
+                    # to the document and set it as the index node
+                    # (we'll fill in the content later)
+                    if not index_node:
+                        index_node = GuideNode(common_index_name)
+                        doc.setindexnode(index_node)
+
+            # we do have an existing index node - check if its name is
+            # different from the common name and add a warning if so
             elif index_node.name != common_index_name:
                 doc.addwarning(f"index node: @{index_node.name} is"
                                 " inconsistent with common index node"
                                 f" name: @{common_index_name}")
 
-            # replace the lines in this node with the common index
+            # replace the lines in the node (either existing, or new)
+            # with the common index
             index_node.replacelines(common_index_lines)
 
 
