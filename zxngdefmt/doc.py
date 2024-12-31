@@ -125,11 +125,30 @@ class GuideDoc(object):
 
 
     def setindexnode(self, node):
+        """Set the node used as the index for this document.  The node
+        is supplied as a GuideNode object and the 'index' document-level
+        command is set to use this node.
+
+        If a node with the same name already exists, ValueError
+        exception is raised.
+        """
+
+        if self.getnode(node.name):
+            raise ValueError(f"node with name: {node.name} already"
+                             " exists in document")
+
+        # add the node to the document and set the index command to
+        # point to it
         self._nodes.append(node)
         self._cmds["index"] = node.name
 
 
     def getindexnode(self):
+        """Get the GuideNode object repesenting the index for this
+        document.  If the node is not defined, or does not exist, None
+        is returned.
+        """
+
         return self.getnode(self._cmds.get("index"))
 
 
