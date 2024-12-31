@@ -66,7 +66,7 @@ class GuideNodeDocs(dict):
     def exists(self, target):
         if '/' in node:
             return True
-        
+
         return node in self
 
 

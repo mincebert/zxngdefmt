@@ -41,6 +41,9 @@ class GuideSet(object):
         # other documents
         self._node_docs = GuideNodeDocs()
 
+        # initialise the list of warnings at the set level to empty
+        self._warnings = []
+
         # read in the document files in the set
         self.readfiles(filenames)
 
@@ -62,6 +65,13 @@ class GuideSet(object):
             self._node_docs.addnodes(doc)
 
 
+    def addwarning(self, warning):
+        """Add a warning to the list of warnings about this set.
+        """
+
+        self._warnings.append(warning)
+
+
     def getwarnings(self):
         """Return all the warnings from the set.
 
@@ -70,9 +80,9 @@ class GuideSet(object):
         within them).
         """
 
-        # initialise the list of warnings (there aren't any at the set
-        # level yet, so we just use an empty list)
-        warnings = []
+        # copy our list of set-level warnings as we want to extend and
+        # then return it, but not affect the original list
+        warnings = self._warnings.copy()
 
         # extend the list of warnings with those from each document
         for doc in self._docs:
