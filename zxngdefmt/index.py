@@ -154,14 +154,9 @@ class GuideIndex(dict):
 
             term = self[term_text]
 
-            if term.get("target"):
-                line_render = term_text
-                line_markup = linkcmd(term_text, term["target"])
-                #line_markup = linkcmd(
-                #    term_text, node_docs.fixlink(doc_name, term["target"]))
-            else:
-                line_render = term_text
-                line_markup = term_text
+            line_render = term_text
+            line_markup = (linkcmd(term_text, term["target"])
+                                if term.get("target") else term_text)
 
             if len(term_text) + term_gap > term_width:
                 index_lines.append(line_markup)
@@ -194,17 +189,7 @@ class GuideIndex(dict):
                 else:
                     line_first = False
 
-                #ref_link_fix = node_docs.fixlink(doc_name, refs[ref])
-                ref_link_fix = refs[ref]
-
-                if not ref_link_fix:
-                    self._warnings.append(
-                        f"index term: @{term_text} reference: {ref} unknown"
-                        f" target: @{refs[ref]}")
-
-                    ref_link_fix = refs[ref]
-
-                line_markup += ref_pre + linkcmd(ref_text, ref_link_fix) + ref_post
+                line_markup += ref_pre + linkcmd(ref_text, refs[ref]) + ref_post
                 line_render += ref_pre + ref_text + ref_post
 
             index_lines.append(line_markup)

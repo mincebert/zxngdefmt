@@ -63,6 +63,13 @@ class GuideNodeDocs(dict):
             self[node_name] = doc.getname()
 
 
+    def exists(self, target):
+        if '/' in node:
+            return True
+        
+        return node in self
+
+
     def fixlink(self, doc_name, target):
         """This function is passed as the parameter for re.sub(repl=) to
         add the 'Document/' prefix to a link target node name
