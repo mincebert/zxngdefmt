@@ -124,6 +124,11 @@ class GuideDoc(object):
         return [ node.name for node in self._nodes ]
 
 
+    def setindexnode(self, node):
+        self._nodes.append(node)
+        self._cmds["index"] = node.name
+
+
     def getindexnode(self):
         return self.getnode(self._cmds.get("index"))
 
@@ -143,8 +148,8 @@ class GuideDoc(object):
         If there are no warnings, an empty list will be returned.
         """
 
-        # copy the list of warnings as we want to extend and then return
-        # it, but not affect the original list
+        # copy our list of document-level warnings as we want to extend
+        # and then return it, but not affect the original list
         warnings = self._warnings.copy()
 
         # extend the copied list with the warnings from each node in the
@@ -276,7 +281,7 @@ class GuideDoc(object):
         # record a warning if the index node is defined but does not exist
         index_name = self._cmds.get("index")
         if index_name and (index_name not in node_names):
-            self.addwarning(f"index link to non-existent node: @{index_name}")
+            self.addwarning(f"index node: @{index_name} does not exist")
 
         # check node-level links for all nodes in the document
         for node in self._nodes:
@@ -284,28 +289,31 @@ class GuideDoc(object):
 
 
     def parseindex(self):
-        """Parse the index node of the document, if it exists, into a
-        GuideIndex.  Stores this as .index in the object.
+        """Parse the index node of the document, if it is defined and
+        exists, into a GuideIndex.  The index is stored in .index and
+        True returned; if the node was not defined, or defined but not
+        present, None is returned.
         """
 
         # initialise the index as empty
         self.index = GuideIndex()
 
-        # get the name of the index node defined for this document - if
-        # one was not defined, return, leaving the index empty
-        index_name = self._cmds.get("index")
-        if not index_name:
-            return
-
-        # get the index node itself - if it is not found, return,
-        # leaving the index empty
-        index_node = self.getnode(index_name)
+        # get the index node defined for this document - if one was not
+        # defined or the node defined was not found, return None to
+        # indicate no index node was processed
+        #
+        # we don't add a warning if the node was not persent as this
+        # would be done by checklinks()
+        index_node = self.getindexnode()
         if not index_node:
-            return
+            return None
 
         # parse the node as an index and store the returned GuideIndex
         # in the document
         self.index = index_node.parseindex()
+
+        # return success
+        return True
 
 
     def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN):

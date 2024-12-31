@@ -9,8 +9,20 @@
 import sys
 
 from .index import GuideIndex
-from .node import GuideNodeDocs, LINE_MAXLEN
+from .node import GuideNodeDocs, GuideNode, LINE_MAXLEN
 from .doc import GuideDoc
+
+
+
+# --- constants ---
+
+
+
+# DEFAULT_INDEX_NAME = string
+#
+# The default name for an index node, if one is not defined.
+
+DEFAULT_INDEX_NAME = "INDEX"
 
 
 
@@ -95,7 +107,9 @@ class GuideSet(object):
 
     def makecommonindex(self, line_maxlen=LINE_MAXLEN):
         """Make an consolidated index for the set, merging together the
-        indices in each document.
+        indices in each document, and replace the index node in each
+        document with it (or add a new index node, if one does not
+        exist).
         """
 
         # initialise an empty index then merge each document's index
@@ -107,14 +121,71 @@ class GuideSet(object):
         # render out the consolidated index to a list of formatted lines
         common_index_lines = self.index.format(line_maxlen)
 
-        # replace the index node's lines in each document in the set
-        # with the consolidated version
-        #
-        # TODO - warnings when index page is missing or different node
+        # initialise the common index node name to undefined - we'll set
+        # this to the name used in the first document in the set (or
+        # pick a sensible default)
+        common_index_name = None
+
+        # work through the documents in the set, replacing (or adding)
+        # the index node with the consolidated version
         for doc in self._docs:
+            # get the current index node
             index_node = doc.getindexnode()
-            if index_node:
-                index_node.replacelines(common_index_lines)
+
+            # if we haven't got a common index node name yet, initialise
+            # this from the one in this document, or pick a default
+            if not common_index_name:
+                if index_node:
+                    # we have an index node in this document - use the
+                    # name from that
+                    common_index_name = index_node.name
+
+                else:
+                    # we don't have an index node defined for this
+                    # document - use a default and add a warning
+
+                    common_index_name = DEFAULT_INDEX_NAME
+
+                    self.addwarning("no index node defined in first"
+                                    " document of a set - assuming"
+                                    f"default: @{common_index_name}")
+
+
+                    # check we don't already have a node with the same
+                    # name, but obviously isn't the index node - if we
+                    # do, replace that instead, but add a warning to it
+
+                    existing_node = doc.getnode(common_index_name)
+
+                    if existing_node:
+                        existing_node.addwarning(
+                            "name clashes with common index name -"
+                            " replacing possible non-index node")
+
+                        index_node = existing_node
+
+                    if index_node.name != common_index_name:
+                        doc.addwarning(
+                            f"index node: @{index_node.name} is"
+                            " inconsistent with common index node name:"
+                            f" @{common_index_name}")
+
+
+            # if we didn't find an existing node to replace, create a
+            # new one and set the index node for the document
+            if not index_node:
+                index_node = GuideNode(common_index_name)
+                doc.setindexnode(index_node)
+
+            # we do have an existing index node - add a warning if its
+            # name is different from the common name
+            elif index_node.name != common_index_name:
+                doc.addwarning(f"index node: @{index_node.name} is"
+                                " inconsistent with common index node"
+                                f" name: @{common_index_name}")
+
+            # replace the lines in this node with the common index
+            index_node.replacelines(common_index_lines)
 
 
     def print(self):
