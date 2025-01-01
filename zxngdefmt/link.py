@@ -119,38 +119,53 @@ def _itermore(iterable):
 
 
 
-class GuideNodeDocs(dict):
+class GuideNodeDocs(object):
     """Represents a mapping between a node name (held in the key of a
     dict) and the document it's in.  This is used to fix links to nodes
     in other documents by prefixing them with the document name.
     """
 
 
-    def addnodes(self, doc):
-        """Merge in a list of node names from a document.
+    def __init__(self):
+        """Initialise a GuideNodeDocs object.
         """
+
+        super().__init__()
+
+        # initialise the dictionary of nodes to be empty
+        self._nodes = {}
+
+
+    def __contains__(self, name):
+        """Reports if a particular node name is present in the mapping
+        dictionary.
+        """
+
+        return self._nodes.__contains__(name)
+
+
+    def addnodes(self, doc):
+        """Merge the names of all the nodes in a document to the mapping
+        dictionary.
+        """
+
+        # get the name of the document
+        doc_name = doc.getname()
 
         # go through the nodes in this new document
         for node_name in doc.getnodenames():
-            # if a node with this name already exists, record a
-            # warning in the document and skip adding it
-            if node_name in self:
+            # if a node with this name already exists, add a warning to
+            # the document and skip adding it
+            if node_name in self._nodes:
                 doc.addwarning(
                     f"node: @{node_name} same name already exists in"
-                    f" document: {self[node_name]} -"
+                    f" document: {self._nodes[node_name]} -"
                     f" ignoring")
 
                 continue
 
             # record this node as in this document
-            self[node_name] = doc.getname()
-
-
-    def exists(self, target):
-        if '/' in node:
-            return True
-
-        return node in self
+            self._nodes[node_name] = doc_name
 
 
     def fixlink(self, doc_name, target):
@@ -169,15 +184,15 @@ class GuideNodeDocs(dict):
             return target
 
         # if the target node was not found, return None
-        if target not in self:
+        if target not in self._nodes:
             return
 
         # if the target node is in this document, return it unqualified
-        if self[target] == doc_name:
+        if self._nodes[target] == doc_name:
             return target
 
         # the target is in another document - qualify it
-        return self[target] + '/' + target
+        return self._nodes[target] + '/' + target
 
 
 
