@@ -14,15 +14,16 @@ from .token import LINK_RESTR, renderstring
 
 
 
-# default indent for the references (right) columnn in an index - this
-# is the width of the terms (left) column
+# default indent for the references (right) columnn in a formatted
+# (generated) index - this is the width of the terms (left) column
 
 DEFAULT_REFS_INDENT = 20
 
 
 # minimum number of spaces to leave between a term and the start of the
-# references for an index entry - if term width + refs gap is >
-# refs indent (above), the references will start on the following line
+# references for an index entry in a formatted index - if term width +
+# refs gap is > refs indent (above), the references will start on the
+# following line
 
 DEFAULT_REFS_GAP = 3
 
@@ -65,14 +66,24 @@ INDEX_REF_RE = re.compile(
 
 
 
+# --- functions ---
+
+
+
 def linkcmd(text, target):
+    """Generate a command for a link, given the specified text and a
+    target.
+    """
+
     return '@{"' + text + '" LINK ' + target + '}'
 
 
 def _itermore(iterable):
-    """Pass through all values from the given iterable, augmented by the
-    information if there are more values to come after the current one
-    (True), or if it is the last value (False).
+    """Returns a generator yielding a tuple consisting of two values.
+    The first is the next iteration of the supplied iterable, and the
+    second is a boolean that indicates if there are more items available
+    in the iterable.  The second value will be True for all iterations
+    except the last.
     """
 
     # Get an iterator and pull the first value.
