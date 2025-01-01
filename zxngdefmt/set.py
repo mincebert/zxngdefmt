@@ -6,10 +6,8 @@
 
 
 
-import sys
-
-from .index import GuideIndex
-from .node import GuideNodeDocs, GuideNode, LINE_MAXLEN
+from .link import GuideNodeDocs, GuideIndex
+from .node import GuideNode, LINE_MAXLEN
 from .doc import GuideDoc
 
 

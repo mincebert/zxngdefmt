@@ -6,7 +6,7 @@
 
 import re
 
-from .index import GuideIndex
+from .link import GuideIndex
 
 from .token import (
     LINK_RE,
@@ -33,68 +33,6 @@ _NODE_LINK_TYPES = ["prev", "next", "toc"]
 
 
 # --- classes ---
-
-
-
-class GuideNodeDocs(dict):
-    """Represents a mapping between a node name (held in the key of a
-    dict) and the document it's in.  This is used to fix links to nodes
-    nodes in other documents by prefixing them with the document name.
-    """
-
-
-    def addnodes(self, doc):
-        """Merge in a list of node names from a document.
-        """
-
-        # go through the nodes in this new document
-        for node_name in doc.getnodenames():
-            # if a node with this name already exists, record a
-            # warning in the document and skip adding it
-            if node_name in self:
-                doc.addwarning(
-                    f"node: @{node_name} same name already exists in"
-                    f" document: {self[node_name]} -"
-                    f" ignoring")
-
-                continue
-
-            # record this node as in this document
-            self[node_name] = doc.getname()
-
-
-    def exists(self, target):
-        if '/' in node:
-            return True
-
-        return node in self
-
-
-    def fixlink(self, doc_name, target):
-        """This function is passed as the parameter for re.sub(repl=) to
-        add the 'Document/' prefix to a link target node name
-        ('target'), if it is in a different document (from 'doc_name',
-        the one supplied).
-
-        If the target node name could not be found, None is returned;
-        the caller can use this to correct the link or flag up an error.
-        """
-
-        # if the link is already qualified with a document name, assume
-        # it's correct and leave it alone
-        if '/' in target:
-            return target
-
-        # if the target node was not found, return None
-        if target not in self:
-            return
-
-        # if the target node is in this document, return it unqualified
-        if self[target] == doc_name:
-            return target
-
-        # the target is in another document - qualify it
-        return self[target] + '/' + target
 
 
 

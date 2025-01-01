@@ -2,7 +2,7 @@
 
 
 from .doc import GuideDoc
-from .index import GuideIndex
+from .link import GuideIndex
 from .node import GuideNode
 from .set import GuideSet
 

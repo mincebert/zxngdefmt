@@ -1,36 +1,67 @@
-# zxngdefmt/index.py
+# zxngdefmt/link.py
+
+# Clases for managing links between documents and indices.
 
 
 
 import re
 
-from .token import (
-    LINK_RESTR,
-    renderstring,
-)
+from .token import LINK_RESTR, renderstring
 
 
 
-# width for the term list in an index
-TERM_WIDTH = 20
+# --- constants ---
+
+
+
+# default indent for the references (right) columnn in an index - this
+# is the width of the terms (left) column
+
+DEFAULT_REFS_INDENT = 20
+
 
 # minimum number of spaces to leave between a term and the start of the
-# references for an index entry
-TERM_GAP = 3
+# references for an index entry - if term width + refs gap is >
+# refs indent (above), the references will start on the following line
+
+DEFAULT_REFS_GAP = 3
 
 
-# TODO
+# regular expressions for matching a line in a defined index page in a
+# source file
 
-INDEX_RE = re.compile(r'\s{,2}'
+# the first one matches the 'term' (the left column) and leaves the
+# references as a remainder to be parsed by the second expression, below
 
-                      + '('
-                      + LINK_RESTR
-                      + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
-                      + r")?"
+INDEX_LINE_RE = re.compile(
+    # lines can begin with 0-2 spaces
+    r'\s{,2}'
 
-                      + r"(\s{3,}(?P<remainder>.+))?")
+    # a line can have a 'term' (in the left hand column) which is a
+    # block of static text or a link
+    #
+    # if this is omitted, the term will be continued from the previous
+    # line (this is handled elsewhere)
+    + '('
+    + LINK_RESTR
+    + r"|(?P<static_text>\S+(\s{,2}\S+)*)"
+    + r")?"
 
-INDEX_REF_RE = re.compile(LINK_RESTR + r"(,\s+(?P<remainder>.+))?")
+    # optionally followed by 3 or more spaces and a list of references
+    # as a 'remainder', which we parse separately
+    + r"(\s{3,}(?P<remainder>.+))?")
+
+
+# this regular expression matches references (the right column) one at a
+# time from the 'remainder' column in the line expression, above
+
+INDEX_REF_RE = re.compile(
+    # the references column contains a link
+    LINK_RESTR
+
+    # the remainder (if present) is separately by a comma and optional
+    # space
+    + r"(,\s*(?P<remainder>.+))?")
 
 
 
@@ -60,6 +91,68 @@ def _itermore(iterable):
 
 
 
+class GuideNodeDocs(dict):
+    """Represents a mapping between a node name (held in the key of a
+    dict) and the document it's in.  This is used to fix links to nodes
+    nodes in other documents by prefixing them with the document name.
+    """
+
+
+    def addnodes(self, doc):
+        """Merge in a list of node names from a document.
+        """
+
+        # go through the nodes in this new document
+        for node_name in doc.getnodenames():
+            # if a node with this name already exists, record a
+            # warning in the document and skip adding it
+            if node_name in self:
+                doc.addwarning(
+                    f"node: @{node_name} same name already exists in"
+                    f" document: {self[node_name]} -"
+                    f" ignoring")
+
+                continue
+
+            # record this node as in this document
+            self[node_name] = doc.getname()
+
+
+    def exists(self, target):
+        if '/' in node:
+            return True
+
+        return node in self
+
+
+    def fixlink(self, doc_name, target):
+        """This function is passed as the parameter for re.sub(repl=) to
+        add the 'Document/' prefix to a link target node name
+        ('target'), if it is in a different document (from 'doc_name',
+        the one supplied).
+
+        If the target node name could not be found, None is returned;
+        the caller can use this to correct the link or flag up an error.
+        """
+
+        # if the link is already qualified with a document name, assume
+        # it's correct and leave it alone
+        if '/' in target:
+            return target
+
+        # if the target node was not found, return None
+        if target not in self:
+            return
+
+        # if the target node is in this document, return it unqualified
+        if self[target] == doc_name:
+            return target
+
+        # the target is in another document - qualify it
+        return self[target] + '/' + target
+
+
+
 class GuideIndex(dict):
     """TODO
     """
@@ -76,7 +169,7 @@ class GuideIndex(dict):
 
 
     def parseline(self, line, prev_term=None):
-        m = INDEX_RE.match(line)
+        m = INDEX_LINE_RE.match(line)
         if not m:
             raise ValueError("cannot parse link from line: " + line)
 
@@ -133,7 +226,7 @@ class GuideIndex(dict):
             self_term["refs"].update(merge_term["refs"])
 
 
-    def format(self, line_maxlen, term_width=TERM_WIDTH, term_gap=TERM_GAP):
+    def format(self, line_maxlen, refs_indent=DEFAULT_REFS_INDENT, refs_gap=DEFAULT_REFS_GAP):
         prev_term_text = None
         prev_term_alphanum = None
 
@@ -158,13 +251,13 @@ class GuideIndex(dict):
             line_markup = (linkcmd(term_text, term["target"])
                                 if term.get("target") else term_text)
 
-            if len(term_text) + term_gap > term_width:
+            if len(term_text) + refs_gap > refs_indent:
                 index_lines.append(line_markup)
-                tab = ' ' * term_width
+                tab = ' ' * refs_indent
                 line_render += tab
                 line_markup += tab
             else:
-                tab = ' ' * (term_width - len(term_text))
+                tab = ' ' * (refs_indent - len(term_text))
                 line_render += tab
                 line_markup += tab
 
@@ -181,7 +274,7 @@ class GuideIndex(dict):
                     index_lines.append(line_markup)
 
                     # start new indented line
-                    line_markup = line_render = ' ' * term_width
+                    line_markup = line_render = ' ' * refs_indent
 
                     ref_pre = ''
 
