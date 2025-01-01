@@ -86,26 +86,43 @@ def _itermore(iterable):
     except the last.
     """
 
-    # Get an iterator and pull the first value.
+    # get an iterator for the iterable
     i = iter(iterable)
+
     try:
-        prev = next(i)
+        # try to get the first item
+        item = next(i)
+
     except StopIteration:
+        # it failed, we're done (with no items)
         return
-    # Run the iterator to exhaustion (starting from the second value).
-    for v in i:
-        # Report the *previous* value (more to come).
-        yield prev, True
-        prev = v
-    # Report the last value.
-    yield prev, False
+
+    # iterate through the items in the iterable, starting with the
+    # second (as we got the first, above)
+    for next_ in i:
+        # return the item retrieved last time and True, to signal there
+        # are more items to come
+        yield item, True
+
+        # store the item we retreived this time to return next time
+        item = next_
+
+    # we've exhausted the iterable - return the item we got last time
+    # and False, to indicate there are no more items available
+    yield item, False
+
+    # no further items, so the generator will stop here
+
+
+
+# --- classes ---
 
 
 
 class GuideNodeDocs(dict):
     """Represents a mapping between a node name (held in the key of a
     dict) and the document it's in.  This is used to fix links to nodes
-    nodes in other documents by prefixing them with the document name.
+    in other documents by prefixing them with the document name.
     """
 
 
