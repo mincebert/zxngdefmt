@@ -140,7 +140,7 @@ class GuideNodeDocs(object):
         """Printable version of the object useful for debugging.
         """
 
-        return "GuideNodeDocs(" + repr(sorted(self._nodes.keys())) + ')'
+        return "GuideNodeDocs(" + repr(sorted(self._nodes)) + ')'
 
 
     def __contains__(self, name):
@@ -148,7 +148,7 @@ class GuideNodeDocs(object):
         dictionary.
         """
 
-        return self._nodes.__contains__(name)
+        return name in self._nodes
 
 
     def addnodes(self, doc):
@@ -211,7 +211,7 @@ class GuideNodeDocs(object):
 
 
 
-class GuideIndex(dict):
+class GuideIndex(object):
     """
     """
 
@@ -219,11 +219,25 @@ class GuideIndex(dict):
     def __init__(self):
         super().__init__()
 
+        self._terms = {}
+
         self._warnings = []
 
 
     def __repr__(self):
-        return "GuideIndex(" + super().__repr__() + ')'
+        return "GuideIndex(" + repr(sorted(self._terms)) + ')'
+
+
+    def __contains__(self, term):
+        return term in self._terms
+
+
+    def __getitem__(self, term):
+        return self._terms[term]
+
+
+    def __iter__(self):
+        return iter(self._terms)
 
 
     def parseline(self, line, prev_term=None):
@@ -260,10 +274,9 @@ class GuideIndex(dict):
         if (not link_target) and (not refs_dict):
             return None
 
-        self.setdefault(term, {})
-        self[term].setdefault("target", link_target)
-        self[term].setdefault("refs", {})
-        self[term]["refs"].update(refs_dict)
+        term_entry = self._terms.setdefault(term, {})
+        term_entry.setdefault("target", link_target)
+        term_entry.setdefault("refs", {}).update(refs_dict)
 
         return term
 
@@ -273,8 +286,7 @@ class GuideIndex(dict):
         """
 
         for term in merge_index:
-            self.setdefault(term, {})
-            self_term = self[term]
+            self_term = self._terms.setdefault(term, {})
 
             merge_term = merge_index[term]
             if merge_term["target"]:
