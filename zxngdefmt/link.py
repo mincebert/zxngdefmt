@@ -145,8 +145,8 @@ class GuideNodeDocs(object):
 
 
     def addnodes(self, doc):
-        """Merge the names of all the nodes in a document to the mapping
-        dictionary.
+        """Merge the names of all the nodes in a GuideDoc document (and
+        the name of that document) to the mapping dictionary.
         """
 
         # get the name of the document
@@ -168,11 +168,19 @@ class GuideNodeDocs(object):
             self._nodes[node_name] = doc_name
 
 
-    def fixlink(self, doc_name, target):
-        """This function is passed as the parameter for re.sub(repl=) to
-        add the 'Document/' prefix to a link target node name
-        ('target'), if it is in a different document (from 'doc_name',
-        the one supplied).
+    def fixlink(self, doc_name, target_name):
+        """This function is supplied the name of a target node for a
+        link and the name of the document in which that link occurs.
+        The mapping dictionary is checked and, if the target is in a
+        different document, the link will be prefixed with 'Document/'.
+
+        If the target is in the same document, it is NOT qualified with
+        the document name and returned as is.
+
+        If the target is already prefixed with a document name, it is
+        assumed that the author explicitly wanted that document and it
+        is also left alone, regardless of whether that document is one
+        referred to in the mapping dictionary.
 
         If the target node name could not be found, None is returned;
         the caller can use this to correct the link or flag up an error.
@@ -180,19 +188,19 @@ class GuideNodeDocs(object):
 
         # if the link is already qualified with a document name, assume
         # it's correct and leave it alone
-        if '/' in target:
-            return target
+        if '/' in target_name:
+            return target_name
 
         # if the target node was not found, return None
-        if target not in self._nodes:
+        if target_name not in self._nodes:
             return
 
         # if the target node is in this document, return it unqualified
-        if self._nodes[target] == doc_name:
-            return target
+        if self._nodes[target_name] == doc_name:
+            return target_name
 
         # the target is in another document - qualify it
-        return self._nodes[target] + '/' + target
+        return self._nodes[target_name] + '/' + target_name
 
 
 
