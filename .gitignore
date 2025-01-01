@@ -110,7 +110,9 @@ iarbackend/settings/local.py
 
 # PyCharm
 .idea
-.vscode/settings.json
+
+# VSCode
+.vscode/
 
 # macOS directory information
 .DS_Store
