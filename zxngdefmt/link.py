@@ -136,6 +136,13 @@ class GuideNodeDocs(object):
         self._nodes = {}
 
 
+    def __repr__(self):
+        """Printable version of the object useful for debugging.
+        """
+
+        return "GuideNodeDocs(" + repr(sorted(self._nodes.keys())) + ')'
+
+
     def __contains__(self, name):
         """Reports if a particular node name is present in the mapping
         dictionary.
@@ -205,7 +212,7 @@ class GuideNodeDocs(object):
 
 
 class GuideIndex(dict):
-    """TODO
+    """
     """
 
 
