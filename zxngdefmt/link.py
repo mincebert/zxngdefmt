@@ -212,31 +212,76 @@ class GuideNodeDocs(object):
 
 
 class GuideIndex(object):
-    """
+    """Represents the index node of a document.  The class provides
+    methods to parse indexes in a specific source format and then render
+    them out again.
+
+    In addition, indices across multiple documents can be merged to
+    provide a common index across the set.
+
+    For the purposes of this class, indexes have a simple, consistent
+    structure.  Each entry is structured as follows:
+
+    - each entry is called a 'term' and has a name, which is displayed
+    in the index
+
+    - each term may optionally have a link to a node giving the primary
+    definition
+
+    - each term may optionally have one or more secondary 'references',
+    which each have display text and a link to a node (which is
+    non-optional)
     """
 
 
     def __init__(self):
+        """Initialise a GuideIndex object.
+        """
+
         super().__init__()
 
+        # initialise the dictionary of terms to be empty
         self._terms = {}
 
+        # initialise the list of warnings to be empty
         self._warnings = []
 
 
     def __repr__(self):
+        """Printable version of the object useful for debugging.
+        """
+
         return "GuideIndex(" + repr(sorted(self._terms)) + ')'
 
 
-    def __contains__(self, term):
-        return term in self._terms
+    def __contains__(self, term_text):
+        """Returns if the specified term text is present in the index.
+        """
+
+        return term_text in self._terms
 
 
-    def __getitem__(self, term):
-        return self._terms[term]
+    def __getitem__(self, term_text):
+        """Get a dictionary entry giving details for the specified term.
+
+        The dictionary consists of the following keys:
+
+        target -- a string giving the link target for the primary
+        definition (or None, if there is none)
+
+        refs -- a dictionary giving the secondary references for the
+        term; the dictionary keys are the reference text and the values
+        against those keys the reference target node
+        """
+
+        return self._terms[term_text]
 
 
     def __iter__(self):
+        """Return an iterator for walking through the terms in the
+        index.
+        """
+
         return iter(self._terms)
 
 
