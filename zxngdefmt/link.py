@@ -49,14 +49,14 @@ INDEX_LINE_RE = re.compile(
     + r")?"
 
     # optionally followed by 3 or more spaces and a list of references
-    # as a 'remainder', which we parse separately
-    + r"(\s{3,}(?P<remainder>.+))?")
+    # as 'refs', which we parse separately, using the expression below
+    + r"(\s{3,}(?P<refs>.+))?")
 
 
 # this regular expression matches references (the right column) one at a
 # time from the 'remainder' column in the line expression, above
 
-INDEX_REF_RE = re.compile(
+INDEX_REFS_RE = re.compile(
     # the references column contains a link
     LINK_RESTR
 
@@ -264,7 +264,9 @@ class GuideIndex(object):
     def __getitem__(self, term_text):
         """Get a dictionary entry giving details for the specified term.
 
-        The dictionary consists of the following keys:
+        The returned value should be considered opaque and this method
+        is really only intended for internal use.  However, the return
+        value is a dictionary consisting of the following keys:
 
         target -- a string giving the link target for the primary
         definition (or None, if there is none)
@@ -285,44 +287,123 @@ class GuideIndex(object):
         return iter(self._terms)
 
 
+    def getwarnings(self):
+        """Return the warnings from the index.
+        """
+
+        return self._warnings
+
+
     def parseline(self, line, prev_term=None):
+        """Parse a line from a source index node and add the results to
+        the index held by this object.
+
+        Lines should be of the form:
+
+        - begin with 0-2 spaces
+
+        - have a term which is a block of static text or a link command;
+        if this is omitted, the line will continue the previous term
+        specified with prev_term
+
+        - optionally followed by 3 or more spaces and a list of
+        references, which must all be link commands
+
+        The text part of term matched is returned, if an entry was
+        parsed - this is returned; it can be supplied as the prev_term
+        parameter for the next line and will be used if the following
+        line doesn't have a term (allowing a term's references to be
+        spread over multiple lines).  If a line is matched and continues
+        the prev_term, this term will be returned for this call.
+        """
+
+        # try to parse index entry from this line - this should always
+        # succeed but just return empty matching groups for some key
+        # things but, if it doesn't, we return None for 'no match'
         m = INDEX_LINE_RE.match(line)
         if not m:
-            raise ValueError("cannot parse link from line: " + line)
+            self._warnings.append(
+                "cannot parse index entry from line: " + line)
 
-        link_text, link_target, static_text, refs = (
-            m.group("link_text", "link_target", "static_text", "remainder"))
+            return None
+
+        term_text, term_target, term_static, refs = (
+            m.group("link_text", "link_target", "static_text", "refs"))
+
+        # get the term for this entry in order or preference
+        term_markup = term_text or term_static or prev_term
 
         # if we haven't got a term from this line, nor is there one
-        # continuing from the previous line, skip this one
-        term_markup = link_text or static_text or prev_term
+        # continued from the previous line, skip this line
         if not term_markup:
-            self._warnings.append("no term or previous term on index"
-                                  " line: " + line)
+            self._warnings.append(
+                "no term or previous term on index line: " + line)
 
             return None
 
+        # get the text for the term from the link command
         term = renderstring(term_markup.strip())
 
+        # loop whilst there are more references to parse, collecting
+        # them into refs_dict
         refs_dict = {}
         while refs:
-            m = INDEX_REF_RE.match(refs)
+            # try to match the first reference entry
+            m = INDEX_REFS_RE.match(refs)
+
+            # no match - we're done with this line
             if not m:
                 break
+
+            # get the parts of the reference entry
             ref_text, ref_target, refs = (
                 m.group("link_text", "link_target", "remainder"))
+
+            # store it in the dict
             refs_dict[ref_text.strip()] = ref_target
 
-        # if no link targe in the term, nor any refs, this probably is
+        # if no link target in the term, nor any refs, this probably is
         # not an index entry but some plain text - ignore this line and
         # return that we're not in a term
-        if (not link_target) and (not refs_dict):
+        if (not term_target) and (not refs_dict):
             return None
 
-        term_entry = self._terms.setdefault(term, {})
-        term_entry.setdefault("target", link_target)
-        term_entry.setdefault("refs", {}).update(refs_dict)
+        # add this term to the index, if it isn't present already
+        index_term = self._terms.setdefault(term, {})
 
+        # if this entry specifies a primary target for the term, set it
+        if term_target:
+            if "target" in index_term:
+                if term_target != index_term["target"]:
+                    # there is already a primary target for this term
+                    # and it's different - add a warning but don't
+                    # change it
+                    self._warnings.append(
+                        f"document term: '{term}' with target: {term_target}"
+                        f" already exists with different target:"
+                        f" {index_term['target']}")
+
+            # ... or, if the target is not yet set, set it to this entry
+            else:
+                index_term["target"] = term_target
+
+        # go through the references and add them to the term entry
+        index_refs = index_term.setdefault("refs", {})
+        for ref in refs_dict:
+            if ref in index_refs:
+                if refs_dict[ref] != index_refs[ref]:
+                    # a reference with the same text was found but the
+                    # target was different - add a warning but don't
+                    # change it
+                    self._warnings.append(
+                        f"document term: '{term}' has reference: '{ref}' with"
+                        f" target: {refs_dict[ref]} already exists with"
+                        f" different target: {index_refs[ref]}")
+            else:
+                index_refs[ref] = refs_dict[ref]
+
+        # we added something to the index, so return the term we used,
+        # so it can be used for prev_term on the next line, if required
         return term
 
 
@@ -331,14 +412,42 @@ class GuideIndex(object):
         """
 
         for term in merge_index:
+            merge_term = merge_index[term]
             self_term = self._terms.setdefault(term, {})
 
-            merge_term = merge_index[term]
-            if merge_term["target"]:
-                self_term["target"] = merge_term["target"]
+            # if this entry specifies a primary target for the term, set it
+            if merge_term.get("target"):
+                if "target" in self_term:
+                    if merge_term["target"] != self_term["target"]:
+                        # there is already a primary target for this term
+                        # and it's different - add a warning but don't
+                        # change it
+                        self._warnings.append(
+                            f"common term: '{term}' with target: {merge_term['target']}"
+                            f" already exists with different target:"
+                            f" {self_term['target']}")
 
-            self_term.setdefault("refs", {})
-            self_term["refs"].update(merge_term["refs"])
+                # ... or, if the target is not yet set, set it to this entry
+                else:
+                    self_term["target"] = merge_term["target"]
+
+            # go through the references and add them to the term entry
+            self_refs = self_term.setdefault("refs", {})
+            for ref in merge_term["refs"]:
+                merge_ref = merge_term["refs"][ref]
+                if ref in self_refs:
+                    if merge_ref != self_refs[ref]:
+                        # a reference with the same text was found but the
+                        # target was different - add a warning but don't
+                        # change it
+                        self._warnings.append(
+                            f"common term: '{term}' has reference: '{ref}' with"
+                            f" target: {merge_ref} already exists with"
+                            f" different target: {self_refs[ref]}")
+                else:
+                    self_refs[ref] = merge_ref
+
+        self._warnings.extend(merge_index._warnings)
 
 
     def format(self, line_maxlen, refs_indent=DEFAULT_REFS_INDENT, refs_gap=DEFAULT_REFS_GAP):

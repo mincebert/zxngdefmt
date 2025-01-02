@@ -51,6 +51,11 @@ class GuideSet(object):
         # other documents
         self._node_docs = GuideNodeDocs()
 
+        # initialise an empty index - it's up to the caller to request
+        # one is built, but to avoid having to check for it, we create
+        # an empty one
+        self.index = GuideIndex()
+
         # initialise the list of warnings at the set level to empty
         self._warnings = []
 
@@ -93,6 +98,10 @@ class GuideSet(object):
         # copy our list of set-level warnings as we want to extend and
         # then return it, but not affect the original list
         warnings = self._warnings.copy()
+
+        # add warnings from the index (if we built one)
+        warnings.extend(
+            [ "index: " + warning for warning in self.index.getwarnings() ])
 
         # extend the list of warnings with those from each document
         for doc in self._docs:
