@@ -406,39 +406,13 @@ class GuideIndex(object):
         if (not term_target) and (not refs_dict):
             return None
 
-        # add this term to the index, if it isn't present already
-        index_term = self._terms.setdefault(term, {})
+        term_dict = {}
 
-        # if this entry specifies a primary target for the term, set it
         if term_target:
-            if "target" in index_term:
-                if term_target != index_term["target"]:
-                    # there is already a primary target for this term
-                    # and it's different - add a warning but don't
-                    # change it
-                    self._warnings.append(
-                        f"document term: '{term}' with target: {term_target}"
-                        f" already exists with different target:"
-                        f" {index_term['target']}")
+            term_dict["target"] = term_target
+        term_dict["refs"] = refs_dict
 
-            # ... or, if the target is not yet set, set it to this entry
-            else:
-                index_term["target"] = term_target
-
-        # go through the references and add them to the term entry
-        index_refs = index_term.setdefault("refs", {})
-        for ref in refs_dict:
-            if ref in index_refs:
-                if refs_dict[ref] != index_refs[ref]:
-                    # a reference with the same text was found but the
-                    # target was different - add a warning but don't
-                    # change it
-                    self._warnings.append(
-                        f"document term: '{term}' has reference: '{ref}' with"
-                        f" target: {refs_dict[ref]} already exists with"
-                        f" different target: {index_refs[ref]}")
-            else:
-                index_refs[ref] = refs_dict[ref]
+        self._addterm(term, term_dict)
 
         # we added something to the index, so return the term we used,
         # so it can be used for prev_term on the next line, if required
