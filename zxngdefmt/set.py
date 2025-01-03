@@ -99,7 +99,8 @@ class GuideSet(object):
         warnings = self._warnings.copy()
 
         # add in the warnings from the common index
-        warnings.extend(self._index.getwarnings())
+        warnings.extend(
+            [ "index: " + warning for warning in self._index.getwarnings() ])
 
         # extend the list of warnings with those from each document
         for doc in self._docs:

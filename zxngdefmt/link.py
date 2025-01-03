@@ -294,6 +294,44 @@ class GuideIndex(object):
         return self._warnings
 
 
+    def _addterm(self, add_term_text, add_term_dict):
+        self_term = self._terms.setdefault(add_term_text, {})
+
+        # if this entry specifies a primary target for the term, set it
+        if add_term_dict.get("target"):
+            if "target" in self_term:
+                if add_term_dict["target"] != self_term["target"]:
+                    # there is already a primary target for this term
+                    # and it's different - add a warning but don't
+                    # change it
+                    self._warnings.append(
+                        f"term: '{add_term_text}' with target:"
+                        f" {add_term_dict['target']} already exists"
+                        " with different target:"
+                        f" {self_term['target']}")
+
+            # ... or, if the target is not yet set, set it to this entry
+            else:
+                self_term["target"] = add_term_dict["target"]
+
+        # go through the references and add them to the term entry
+        self_refs = self_term.setdefault("refs", {})
+        for add_ref in add_term_dict["refs"]:
+            add_ref_target = add_term_dict["refs"][add_ref]
+            if add_ref in self_refs:
+                if add_ref_target != self_refs[add_ref]:
+                    # a reference with the same text was found but the
+                    # target was different - add a warning but don't
+                    # change it
+                    self._warnings.append(
+                        f"term: '{add_term_text}' has reference:"
+                        f" '{add_ref}' with target: {add_ref_target}"
+                        " already exists with different target:"
+                        f" {self_refs[add_ref]}")
+            else:
+                self_refs[add_ref] = add_ref_target
+
+
     def parseline(self, line, prev_term=None):
         """Parse a line from a source index node and add the results to
         the index held by this object.
@@ -412,40 +450,7 @@ class GuideIndex(object):
         """
 
         for term in merge_index:
-            merge_term = merge_index[term]
-            self_term = self._terms.setdefault(term, {})
-
-            # if this entry specifies a primary target for the term, set it
-            if merge_term.get("target"):
-                if "target" in self_term:
-                    if merge_term["target"] != self_term["target"]:
-                        # there is already a primary target for this term
-                        # and it's different - add a warning but don't
-                        # change it
-                        self._warnings.append(
-                            f"common term: '{term}' with target: {merge_term['target']}"
-                            f" already exists with different target:"
-                            f" {self_term['target']}")
-
-                # ... or, if the target is not yet set, set it to this entry
-                else:
-                    self_term["target"] = merge_term["target"]
-
-            # go through the references and add them to the term entry
-            self_refs = self_term.setdefault("refs", {})
-            for ref in merge_term["refs"]:
-                merge_ref = merge_term["refs"][ref]
-                if ref in self_refs:
-                    if merge_ref != self_refs[ref]:
-                        # a reference with the same text was found but the
-                        # target was different - add a warning but don't
-                        # change it
-                        self._warnings.append(
-                            f"common term: '{term}' has reference: '{ref}' with"
-                            f" target: {merge_ref} already exists with"
-                            f" different target: {self_refs[ref]}")
-                else:
-                    self_refs[ref] = merge_ref
+            self._addterm(term, merge_index[term])
 
         self._warnings.extend(merge_index._warnings)
 
