@@ -51,10 +51,9 @@ class GuideSet(object):
         # other documents
         self._node_docs = GuideNodeDocs()
 
-        # initialise an empty index - it's up to the caller to request
-        # one is built, but to avoid having to check for it, we create
-        # an empty one
-        self.index = GuideIndex()
+        # initialise an empty index - if one is requested to be built,
+        # this will be replaced with a completed one
+        self._index = GuideIndex()
 
         # initialise the list of warnings at the set level to empty
         self._warnings = []
@@ -99,9 +98,8 @@ class GuideSet(object):
         # then return it, but not affect the original list
         warnings = self._warnings.copy()
 
-        # add warnings from the index (if we built one)
-        warnings.extend(
-            [ "index: " + warning for warning in self.index.getwarnings() ])
+        # add in the warnings from the common index
+        warnings.extend(self._index.getwarnings())
 
         # extend the list of warnings with those from each document
         for doc in self._docs:
@@ -121,12 +119,12 @@ class GuideSet(object):
 
         # initialise an empty index then merge each document's index
         # into it, creating a consolidated ones
-        self.index = GuideIndex()
+        self._index = GuideIndex()
         for doc in self._docs:
-            self.index.merge(doc.index)
+            self._index.merge(doc.getindex())
 
         # render out the consolidated index to a list of formatted lines
-        common_index_lines = self.index.format(line_maxlen)
+        common_index_lines = self._index.format(line_maxlen)
 
         # initialise the common index node name to undefined - we'll set
         # this to the name used in the first document in the set (or

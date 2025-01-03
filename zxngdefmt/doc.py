@@ -73,6 +73,10 @@ class GuideDoc(object):
         # initialise the list of nodes
         self._nodes = []
 
+        # initialise an empty index - if one is requested to be built,
+        # this will be replaced with a completed one
+        self._index = GuideIndex()
+
         # initialise a list of warnings encountered when processing this
         # document
         self._warnings = []
@@ -124,6 +128,13 @@ class GuideDoc(object):
         return [ node.name for node in self._nodes ]
 
 
+    def getindex(self):
+        """Get the index.
+        """
+
+        return self._index
+
+
     def setindexnode(self, node):
         """Set the node used as the index for this document.  The node
         is supplied as a GuideNode object and the 'index' document-level
@@ -171,8 +182,12 @@ class GuideDoc(object):
         # and then return it, but not affect the original list
         warnings = self._warnings.copy()
 
+        # add warnings from the index, prefixed with 'index:'
+        warnings.extend(
+            [ "index: " + warning for warning in self._index.getwarnings() ])
+
         # extend the copied list with the warnings from each node in the
-        # document
+        # document, prefixed by 'node: @name'
         for node in self._nodes:
             warnings.extend([ f"node: @{node.name} {warning}"
                                   for warning in node.getwarnings() ])
@@ -315,7 +330,7 @@ class GuideDoc(object):
         """
 
         # initialise the index as empty
-        self.index = GuideIndex()
+        self._index = GuideIndex()
 
         # get the index node defined for this document - if one was not
         # defined or the node defined was not found, return None to
@@ -329,7 +344,7 @@ class GuideDoc(object):
 
         # parse the node as an index and store the returned GuideIndex
         # in the document
-        self.index = index_node.parseindex()
+        self._index = index_node.parseindex()
 
         # return success
         return True
