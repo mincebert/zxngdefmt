@@ -496,28 +496,32 @@ class GuideIndex(object):
             line_markup = (linkcmd(term_text, term_dict["target"])
                                if term_dict.get("target") else term_text)
 
-            # if the length of the rendered version, added to the
-            # minimum gap between it and the references, is over the
-            # width of the terms column, write out the term on a line of
-            # it's own and start a new line for the references
-            if len(line_render) + terms_gap > terms_width:
-                index_lines.append(line_markup)
-
-                tab = ' ' * terms_width
-                line_render += tab
-                line_markup += tab
-
-
-            # the term and gap will fit in the terms column - add the
-            # number of spaces required to get into the references
-            # column
-            else:
-                tab = ' ' * (terms_width - len(line_render))
-                line_render += tab
-                line_markup += tab
-
             # get the dictionary of references for this term
             refs_dict = term_dict["refs"]
+
+            # if there are references, we need to space over to the
+            # references column from the term
+            if refs_dict:
+                # if the length of the rendered version, added to the
+                # minimum gap between it and the references, is over the
+                # width of the terms column, write out the term on a
+                # line of it's own and start a new line for the
+                # references
+                if len(line_render) + terms_gap > terms_width:
+                    index_lines.append(line_markup)
+
+                    tab = ' ' * terms_width
+                    line_render += tab
+                    line_markup += tab
+
+
+                # the term and gap will fit in the terms column - add
+                # the number of spaces required to get into the
+                # references column
+                else:
+                    tab = ' ' * (terms_width - len(line_render))
+                    line_render += tab
+                    line_markup += tab
 
             # start with this being the first reference on a line
             line_first = True
