@@ -492,9 +492,10 @@ class GuideIndex(object):
             # the rendered version is used to calculate displayed widths
             # for word wrap; the markup version is used for the actual
             # output
-            line_render = term_text
-            line_markup = (linkcmd(term_text, term_dict["target"])
-                               if term_dict.get("target") else term_text)
+            line_render = ' ' + term_text + ' '
+            line_markup = (linkcmd(' ' + term_text + ' ', term_dict["target"])
+                               if term_dict.get("target")
+                               else (' ' + term_text + ' '))
 
             # get the dictionary of references for this term
             refs_dict = term_dict["refs"]
