@@ -436,68 +436,137 @@ class GuideIndex(object):
             self._addterm(term, merge_index[term])
 
 
-    def format(self, line_maxlen, refs_indent=DEFAULT_REFS_INDENT, refs_gap=DEFAULT_REFS_GAP):
-        prev_term_text = None
-        prev_term_alphanum = None
+    def format(self, line_maxlen, terms_width=DEFAULT_REFS_INDENT,
+               terms_gap=DEFAULT_REFS_GAP):
+        """Format the index for writing.  The terms will be listed on
+        the left side, with the references on the right side, wrapped
+        to the maximum line width.  The return value is a list of lines.
 
+        The width of the terms column will be terms_width, the
+        references starting after that.  A minimum of terms_gap spaces
+        will be left between a term and a reference - if a term is
+        longer than this, the references will start on the following
+        line.
+
+        The terms are sorted into ASCIIbetical order, with all the non
+        numeric and alphabetic characters coming first.  Blank lines
+        will be inserted between the symbols and alphanumeric
+        characters, as well as between each number and letter group.
+        """
+
+        # store the previous term group (space for a symbol [see below],
+        # number or letter) - this is used to work out when to insert a
+        # blank line
+        prev_term_group = None
+
+        # initialise the returned lines list to empty
         index_lines = []
 
-        for term_text in sorted(self,
-                                key=lambda s: s.lower()
-                                                  if re.match("[0-9A-Z]", s)
-                                                  else (' ' + s)):
+        # work through the terms, sorted symbols first, then numbers,
+        # then letters; the symbols are moved first (but retaining
+        # ASCIIbetical order) by prefixing them with a space character)
+        for term_text in (
+            sorted(self,
+                   key=lambda s: s.lower()
+                                     if re.match("[0-9A-Z]", s, re.IGNORECASE)
+                                     else (' ' + s))):
 
-            term_alphanum = bool(re.match(r"[0-9A-Z]", term_text))
-            if prev_term_text:
-                if term_alphanum != prev_term_alphanum:
-                        index_lines.append('')
+            # get the grouping of this term, based on the first
+            # character, if it's 0-9 or A-Z (anything else returns an
+            # empty string, so are grouped under that)
+            term_group = re.match(
+                r"([0-9A-Z]?)", term_text, re.IGNORECASE).group(1)
 
-                elif term_alphanum and (term_text[0] != prev_term_text[0]):
+            # if the group of this term is different from the previous
+            # one, we need to insert a blank line
+            if ((prev_term_group is not None)
+                and (term_group != prev_term_group)):
                     index_lines.append('')
 
-            term = self[term_text]
+            # get the dictionary about this term
+            term_dict = self[term_text]
 
+            # add the term to the rendered and markup versions of the
+            # output
+            #
+            # the rendered version is used to calculate displayed widths
+            # for word wrap; the markup version is used for the actual
+            # output
             line_render = term_text
-            line_markup = (linkcmd(term_text, term["target"])
-                                if term.get("target") else term_text)
+            line_markup = (linkcmd(term_text, term_dict["target"])
+                               if term_dict.get("target") else term_text)
 
-            if len(term_text) + refs_gap > refs_indent:
+            # if the length of the rendered version, added to the
+            # minimum gap between it and the references, is over the
+            # width of the terms column, write out the term on a line of
+            # it's own and start a new line for the references
+            if len(line_render) + terms_gap > terms_width:
                 index_lines.append(line_markup)
-                tab = ' ' * refs_indent
+
+                tab = ' ' * terms_width
                 line_render += tab
                 line_markup += tab
+
+
+            # the term and gap will fit in the terms column - add the
+            # number of spaces required to get into the references
+            # column
             else:
-                tab = ' ' * (refs_indent - len(term_text))
+                tab = ' ' * (terms_width - len(line_render))
                 line_render += tab
                 line_markup += tab
 
-            refs = term["refs"]
+            # get the dictionary of references for this term
+            refs_dict = term_dict["refs"]
 
+            # start with this being the first reference on a line
             line_first = True
-            for ref, more in _itermore(sorted(refs)):
+
+            # work through the references, getting the reference name
+            # and flag if there are more references to come
+            for ref, more in _itermore(sorted(refs_dict)):
+                # references are space-padded at start and end
                 ref_text = ' ' + ref + ' '
 
+                # if the term is not the first on a line, it needs a
+                # space to separate it from the previous term
                 ref_pre = '' if line_first else ' '
+
+                # we need a comma after the reference if there are more
+                # to come
                 ref_post = ',' if more else ''
 
-                if len(line_render + ref_pre + ref_text + ref_post) > line_maxlen:
+                # if adding this reference to the line would cause it to
+                # be overlength, finish that line and start a new one
+                if (len(line_render + ref_pre + ref_text + ref_post)
+                        > line_maxlen):
+
+                    # write out this line
                     index_lines.append(line_markup)
 
-                    # start new indented line
-                    line_markup = line_render = ' ' * refs_indent
+                    # start new, indented line
+                    line_markup = line_render = ' ' * terms_width
 
+                    # we don't need the space before this term as this
+                    # will be the first on the line
                     ref_pre = ''
 
-                    line_first = True
-                else:
-                    line_first = False
-
-                line_markup += ref_pre + linkcmd(ref_text, refs[ref]) + ref_post
+                # add this reference to the render and markup versions
+                # of the line
                 line_render += ref_pre + ref_text + ref_post
+                line_markup += (
+                    ref_pre + linkcmd(ref_text, refs_dict[ref]) + ref_post)
 
+                # we're no longer the first term on the line (even if
+                # started a new one, we just added one that was the
+                # first)
+                line_first = False
+
+            # add the last (uncompleted) line for this term the output
             index_lines.append(line_markup)
 
-            prev_term_text = term_text
-            prev_term_alphanum = term_alphanum
+            # this term group as the previous, ready for the next one
+            prev_term_group = term_group
 
+        # return the formatted index
         return index_lines
