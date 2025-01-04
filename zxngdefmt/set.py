@@ -6,6 +6,8 @@
 
 
 
+import os
+
 from .link import GuideNodeDocs, GuideIndex
 from .node import GuideNode, LINE_MAXLEN
 from .doc import GuideDoc
@@ -200,6 +202,14 @@ class GuideSet(object):
             # replace the lines in the node (either existing, or new)
             # with the common index
             index_node.replacelines(common_index_lines)
+
+
+    def writefiles(self, dir):
+        for doc in self._docs:
+            with (open(os.path.join(dir, doc.getname() + ".gde"), 'w')
+                      as f):
+                print('\n'.join(doc.format(node_docs=self._node_docs)),
+                      file=f)
 
 
     def print(self):

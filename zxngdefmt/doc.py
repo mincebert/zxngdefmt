@@ -4,6 +4,7 @@
 
 
 
+import os
 import re
 
 from .link import GuideIndex
@@ -94,10 +95,15 @@ class GuideDoc(object):
         if not, the complete name will be stored.
         """
 
-        if name.endswith(".gde"):
-            self._name = name[:-4]
+        # get the leaf part of the name
+        basename = os.path.basename(name)
+
+        # strip off '.gde' if that's present (the NextGuide viewer will
+        # add that on, if the file is not found, with the plain name)
+        if basename.endswith(".gde"):
+            self._name = basename[:-4]
         else:
-            self._name = name
+            self._name = basename
 
 
     def getname(self):
