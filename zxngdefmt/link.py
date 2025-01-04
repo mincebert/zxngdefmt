@@ -353,6 +353,10 @@ class GuideIndex(object):
         line doesn't have a term (allowing a term's references to be
         spread over multiple lines).  If a line is matched and continues
         the prev_term, this term will be returned for this call.
+
+        If there are any problems adding an entry, such as duplicate
+        entries for the same term or reference with conflicting target
+        link information, warnings will be added.
         """
 
         # try to parse index entry from this line - this should always
@@ -365,22 +369,17 @@ class GuideIndex(object):
 
             return None
 
-        term_text, term_target, term_static, refs = (
+        term_link_text, term_link_target, term_static, refs = (
             m.group("link_text", "link_target", "static_text", "refs"))
 
         # get the term for this entry in order or preference
-        term_markup = term_text or term_static or prev_term
-
-        # if we haven't got a term from this line, nor is there one
-        # continued from the previous line, skip this line
-        if not term_markup:
-            self._warnings.append(
-                "no term or previous term on index line: " + line)
-
+        term_text_markup = term_link_text or term_static or prev_term
+        if not term_text_markup:
+            # no valid term was found - ignore this line
             return None
 
-        # get the text for the term from the link command
-        term = renderstring(term_markup.strip())
+        # render the text to remove formatting from the term dictionary
+        term_text = renderstring(term_text_markup.strip())
 
         # loop whilst there are more references to parse, collecting
         # them into refs_dict
@@ -403,30 +402,38 @@ class GuideIndex(object):
         # if no link target in the term, nor any refs, this probably is
         # not an index entry but some plain text - ignore this line and
         # return that we're not in a term
-        if (not term_target) and (not refs_dict):
+        if (not term_link_target) and (not refs_dict):
             return None
 
+        # build a dictionary of details about the term (except the text)
+        # to use with _addterm()
         term_dict = {}
-
-        if term_target:
-            term_dict["target"] = term_target
+        if term_link_target:
+            term_dict["target"] = term_link_target
         term_dict["refs"] = refs_dict
 
-        self._addterm(term, term_dict)
+        # add the term to the dictionary, flagging up any warnings about
+        # duplicates, etc.
+        self._addterm(term_text, term_dict)
 
         # we added something to the index, so return the term we used,
         # so it can be used for prev_term on the next line, if required
-        return term
+        return term_text
 
 
     def merge(self, merge_index):
-        """TODO
+        """Merge another index into this one to create a common index
+        (e.g. across a set).
+
+        If there are any problems adding an entry, such as duplicate
+        entries for the same term or reference with conflicting target
+        link information, warnings will be added.
         """
 
+        # go through the terms in the index we're merging and merge them
+        # into this one
         for term in merge_index:
             self._addterm(term, merge_index[term])
-
-        self._warnings.extend(merge_index._warnings)
 
 
     def format(self, line_maxlen, refs_indent=DEFAULT_REFS_INDENT, refs_gap=DEFAULT_REFS_GAP):
