@@ -459,8 +459,9 @@ class GuideIndex(object):
         # blank line
         prev_term_group = None
 
-        # initialise the returned lines list to empty
-        index_lines = []
+        # initialise the returned lines list with 'Index' centred and a
+        # following blank line before the terms start
+        index_lines = ["@{c}@{h1}Index", ""]
 
         # work through the terms, sorted symbols first, then numbers,
         # then letters; the symbols are moved first (but retaining
@@ -495,7 +496,7 @@ class GuideIndex(object):
             line_render = ' ' + term_text + ' '
             line_markup = (linkcmd(' ' + term_text + ' ', term_dict["target"])
                                if term_dict.get("target")
-                               else (' ' + term_text + ' '))
+                               else (" @{b}" + term_text + "@{ub} "))
 
             # get the dictionary of references for this term
             refs_dict = term_dict["refs"]

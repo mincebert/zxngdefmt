@@ -81,6 +81,35 @@ class GuideSet(object):
             self._node_docs.addnodes(doc)
 
 
+    def writefiles(self, dir):
+        """Write out the set to a series of files in the specified
+        directory.
+
+        The filenames will be the document names with '.gde' suffixed.
+        """
+
+        for doc in self._docs:
+            with (open(os.path.join(dir, doc.getname() + ".gde"), 'w')
+                      as f):
+                print('\n'.join(doc.format(node_docs=self._node_docs)),
+                      file=f)
+
+
+    def print(self):
+        """Print out the set of guide documents to standard output, with
+        a separator between each one.
+
+        This is intended more as a debugging function rather than useful
+        program operation.
+        """
+
+        for doc in self._docs:
+            print()
+            print(f"=== {doc.getname()} ===")
+            print()
+            print('\n'.join(doc.format(node_docs=self._node_docs)))
+
+
     def addwarning(self, warning):
         """Add a warning to the list of warnings about this set.
         """
@@ -202,17 +231,3 @@ class GuideSet(object):
             # replace the lines in the node (either existing, or new)
             # with the common index
             index_node.replacelines(common_index_lines)
-
-
-    def writefiles(self, dir):
-        for doc in self._docs:
-            with (open(os.path.join(dir, doc.getname() + ".gde"), 'w')
-                      as f):
-                print('\n'.join(doc.format(node_docs=self._node_docs)),
-                      file=f)
-
-
-    def print(self):
-        for doc in self._docs:
-            print(f"=> DOC: {doc.getname()}")
-            print('\n'.join(doc.format(node_docs=self._node_docs)))
