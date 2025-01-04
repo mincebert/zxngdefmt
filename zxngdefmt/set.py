@@ -94,18 +94,23 @@ class GuideSet(object):
         within them).
         """
 
-        # copy our list of set-level warnings as we want to extend and
-        # then return it, but not affect the original list
-        warnings = self._warnings.copy()
+        # start with an empty warnings list
+        warnings = []
 
-        # add in the warnings from the common index
-        warnings.extend(
-            [ "index: " + warning for warning in self._index.getwarnings() ])
-
-        # extend the list of warnings with those from each document
+        # first, extend the list of warnings with those from each
+        # document
         for doc in self._docs:
             warnings.extend([ f"document: {doc.getname()} {warning}"
                                   for warning in doc.getwarnings() ])
+
+        # add in our warnings - we do this after the document ones as
+        # these a generated after each document is processed
+        warnings.extend(self._warnings)
+
+        # add in the warnings from the common index
+        warnings.extend(
+            [ "set index: " + warning
+                  for warning in self._index.getwarnings() ])
 
         # return the composite list of warnings
         return warnings
