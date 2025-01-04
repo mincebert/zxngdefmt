@@ -191,7 +191,8 @@ class GuideSet(object):
 
                     self.addwarning(
                         "no index node defined in first document of a"
-                        f"set - assuming default: @{common_index_name}")
+                        " set - assuming default:"
+                        f" @{common_index_name}")
 
 
             # if this document doesn't have an index node, we need to
