@@ -152,6 +152,19 @@ class GuideSet(object):
         return warnings
 
 
+    def getnodedocs(self):
+        """Return a dictionary keyed on the name of all nodes in the
+        set, with the values as a list of the documents in which that
+        node is defined.
+        """
+
+        nodes = {}
+        for doc in self._docs:
+            for node_name in doc.getnodenames():
+                nodes.setdefault(node_name, []).append(doc.getname())
+        return nodes
+
+
     def makesetindex(self, line_maxlen=LINE_MAXLEN):
         """Make an consolidated index for the set, merging together the
         indices in each document, and replace the index node in each

@@ -37,7 +37,12 @@ parser.add_argument(
     "-w", "--no-warnings",
     action="store_true",
     help="suppress printing of warnings encountered during formatting"
-         " to stderr")
+         " to stdandard error")
+
+parser.add_argument(
+    "-n", "--nodes",
+    action="store_true",
+    help="print a list of all nodes in the set to standard output")
 
 parser.add_argument(
     "-v", "--version",
@@ -71,6 +76,13 @@ if args.output_dir:
     guide_set.writefiles(args.output_dir)
 else:
     guide_set.print()
+
+# if the 'list nodes' option is used, print the names of all nodes,
+# alongside the document(s) in which they are defined
+if args.nodes:
+    node_docs = guide_set.getnodedocs()
+    for node_name in sorted(node_docs):
+        print(f"{node_name:20}", ", ".join(sorted(node_docs[node_name])))
 
 # if warnings haven't been disabled, print those to stderr
 if not args.no_warnings:
