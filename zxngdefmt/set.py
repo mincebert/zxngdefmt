@@ -138,7 +138,7 @@ class GuideSet(object):
         # these a generated after each document is processed
         warnings.extend(self._warnings)
 
-        # add in the warnings from the common index
+        # add in the warnings from the set index
         warnings.extend(
             [ "set index: " + warning
                   for warning in self._index.getwarnings() ])
@@ -147,7 +147,7 @@ class GuideSet(object):
         return warnings
 
 
-    def makecommonindex(self, line_maxlen=LINE_MAXLEN):
+    def makesetindex(self, line_maxlen=LINE_MAXLEN):
         """Make an consolidated index for the set, merging together the
         indices in each document, and replace the index node in each
         document with it (or add a new index node, if one does not
@@ -161,12 +161,12 @@ class GuideSet(object):
             self._index.merge(doc.getindex())
 
         # render out the consolidated index to a list of formatted lines
-        common_index_lines = self._index.format(line_maxlen)
+        set_index_lines = self._index.format(line_maxlen)
 
-        # initialise the common index node name to undefined - we'll set
+        # initialise the set index node name to undefined - we'll set
         # this to the name used in the first document in the set (or
         # pick a sensible default)
-        common_index_name = None
+        set_index_name = None
 
         # work through the documents in the set, replacing (or adding)
         # the index node with the consolidated version
@@ -174,61 +174,61 @@ class GuideSet(object):
             # get the current index node (or None, if there isn't one)
             index_node = doc.getindexnode()
 
-            # if we haven't got a common index node name yet (which
-            # means we're processing the first document in the set),
-            # we need to set that somehow ...
-            if not common_index_name:
+            # if we haven't got a set index node name yet (which means
+            # we're processing the first document in the set), we need
+            # to set that somehow ...
+            if not set_index_name:
                 if index_node:
                     # we have an index node in this document - use the
                     # name from that
-                    common_index_name = index_node.name
+                    set_index_name = index_node.name
 
                 else:
                     # we DON'T have an index node defined for this
                     # document - use a default and add a warning
 
-                    common_index_name = DEFAULT_INDEX_NAME
+                    set_index_name = DEFAULT_INDEX_NAME
 
                     self.addwarning(
                         "no index node defined in first document of a"
                         " set - assuming default:"
-                        f" @{common_index_name}")
+                        f" @{set_index_name}")
 
 
             # if this document doesn't have an index node, we need to
-            # create one and will use the common (first or default) name
+            # create one and will use the set (first or default) name
             # for it ...
             if not index_node:
-                existing_node = doc.getnode(common_index_name)
+                existing_node = doc.getnode(set_index_name)
 
                 if existing_node:
-                    # we have an existing node with the common name -
-                    # add a warning and use it, which will replace its
-                    # contents with our common index
+                    # we have an existing node with the set name - add a
+                    # warning and use it, which will replace its
+                    # contents with our set index
 
                     existing_node.addwarning(
-                        "existing node's name clashes with common"
-                        " index name - replacing contents of possible"
+                        "existing node's name clashes with set index"
+                        " name - replacing contents of possible"
                         " non-index node")
 
                     index_node = existing_node
 
                 else:
-                    # we DON'T have an existing node with the common
-                    # name - create a new node with that name, add it
-                    # to the document and set it as the index node
-                    # (we'll fill in the content later)
+                    # we DON'T have an existing node with the set name
+                    # - create a new node with that name, add it to the
+                    # document and set it as the index node (we'll fill
+                    # in the content later)
                     if not index_node:
-                        index_node = GuideNode(common_index_name)
+                        index_node = GuideNode(set_index_name)
                         doc.setindexnode(index_node)
 
             # we do have an existing index node - check if its name is
-            # different from the common name and add a warning if so
-            elif index_node.name != common_index_name:
+            # different from the set name and add a warning if so
+            elif index_node.name != set_index_name:
                 doc.addwarning(f"index node: @{index_node.name} is"
-                                " inconsistent with common index node"
-                                f" name: @{common_index_name}")
+                                " inconsistent with set index node"
+                                f" name: @{set_index_name}")
 
             # replace the lines in the node (either existing, or new)
-            # with the common index
-            index_node.replacelines(common_index_lines)
+            # with the set index
+            index_node.replacelines(set_index_lines)

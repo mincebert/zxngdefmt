@@ -61,9 +61,9 @@ args = parser.parse_args()
 # read in the specified list of NextGuide files
 guide_set = GuideSet(args.file)
 
-# recreate and replace the indexes and make a common one for the set
+# recreate and replace the indexes and make a set-wide one for the set
 if args.index:
-    guide_set.makecommonindex()
+    guide_set.makesetindex()
 
 # if we're writing out formatted guide files, do that, otherwise just
 # print the results to stdout
