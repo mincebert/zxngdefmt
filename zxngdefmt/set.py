@@ -76,6 +76,11 @@ class GuideSet(object):
             # add this document to the list of documents in the set
             self._docs.append(doc)
 
+            # add the index node to the set of 'always local' nodes
+            index_node = doc.getindexnode()
+            if index_node:
+                self._node_docs.addlocalnode(index_node.name)
+
             # add the nodes in this document to the GuideNodeDocs
             # mapping object
             self._node_docs.addnodes(doc)

@@ -135,6 +135,11 @@ class GuideNodeDocs(object):
         # initialise the dictionary of nodes to be empty
         self._nodes = {}
 
+        # initialise the set of 'always local' nodes which exist in all
+        # documents across a set and links are never rewritten to a node
+        # in another document
+        self._local_nodes = set()
+
 
     def __repr__(self):
         """Printable version of the object useful for debugging.
@@ -163,7 +168,9 @@ class GuideNodeDocs(object):
         for node_name in doc.getnodenames():
             # if a node with this name already exists, add a warning to
             # the document and skip adding it
-            if node_name in self._nodes:
+            if ((node_name not in self._local_nodes)
+                and (node_name in self._nodes)):
+
                 doc.addwarning(
                     f"node: @{node_name} same name already exists in"
                     f" document: {self._nodes[node_name]} -"
@@ -173,6 +180,14 @@ class GuideNodeDocs(object):
 
             # record this node as in this document
             self._nodes[node_name] = doc_name
+
+
+    def addlocalnode(self, node_name):
+        """Add the named local node to the set of nodes which can
+        exist across all documents in a set.
+        """
+
+        self._local_nodes.add(node_name)
 
 
     def fixlink(self, doc_name, target_name):
@@ -201,6 +216,11 @@ class GuideNodeDocs(object):
         # if the target node was not found, return None
         if target_name not in self._nodes:
             return
+
+        # if the target node is in the 'always local' set, just return
+        # unqualified
+        if target_name in self._local_nodes:
+            return target_name
 
         # if the target node is in this document, return it unqualified
         if self._nodes[target_name] == doc_name:

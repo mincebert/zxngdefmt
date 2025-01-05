@@ -145,7 +145,8 @@ class GuideNode(object):
         exists = (not link_name) or (link_name in node_names)
         if not exists:
             self.addwarning(
-                f"link type: {type_} to non-existent node: @{link_name}")
+                f"link type: {type_} target: @{link_name} does not"
+                " exist")
 
         return exists
 
