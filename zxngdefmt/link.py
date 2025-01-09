@@ -479,6 +479,10 @@ class GuideIndex(object):
         # blank line
         prev_term_group = None
 
+        # counter for the number of links (used to track if the limit of
+        # 255 is exceeded)
+        num_links = 0
+
         # initialise the returned lines list with 'Index' centred and a
         # following blank line before the terms start
         index_lines = ["@{c}@{h1}Index", ""]
@@ -517,6 +521,10 @@ class GuideIndex(object):
             line_markup = (linkcmd(' ' + term_text + ' ', term_dict["target"])
                                if term_dict.get("target")
                                else (" @{b}" + term_text + "@{ub} "))
+
+            # increase the number of links, if the term has a target set
+            if term_dict.get("target"):
+                num_links += 1
 
             # get the dictionary of references for this term
             refs_dict = term_dict["refs"]
@@ -588,11 +596,17 @@ class GuideIndex(object):
                 # first)
                 line_first = False
 
+                num_links += 1
+
             # add the last (uncompleted) line for this term the output
             index_lines.append(line_markup)
 
             # this term group as the previous, ready for the next one
             prev_term_group = term_group
+
+        if num_links > 255:
+            self._warnings.append(
+                f"index node contains too many links: {num_links}")
 
         # return the formatted index
         return index_lines

@@ -42,7 +42,7 @@ The utility is an excecutable Python module and can be run with the `-m`
 option and the name of the module.  `-h` gives help:
 
 ```
-rcf@doraemon zxngdefmt % python3 -m zxngdefmt -h 
+rcf@doraemon zxngdefmt % python3 -m zxngdefmt -h
 usage: zxngdefmt [-h] [-o OUTPUT_DIR] [-i] [-w] [-n] [-v] file [file ...]
 
 positional arguments:
@@ -134,8 +134,8 @@ for each term, all the references.  The terms in the index are sorted into
 ASCIIbetical order, with all non alphanumeric characters first (i.e. symbols).
 
 Note: there is a limitation of 255 links per node.  The index generator does
-not currently allow for this and this will need to be worked around, perhaps by
-adding two-tier indexes.
+will generate a warning if this is exceed but it is currently not worked
+around.  A solution may be to split the index into two tiers.
 
 Checking
 --------
