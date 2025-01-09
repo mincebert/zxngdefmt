@@ -604,6 +604,8 @@ class GuideIndex(object):
             # this term group as the previous, ready for the next one
             prev_term_group = term_group
 
+        # generate a warning, if there are too many links in the index
+        # node
         if num_links > 255:
             self._warnings.append(
                 f"index node contains too many links: {num_links}")
