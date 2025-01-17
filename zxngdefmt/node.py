@@ -21,6 +21,11 @@ from .token import (
 
 
 
+# maximum allowed length for node name
+
+NODE_NAME_MAXLEN = 15
+
+
 # maximum rendered length for a single line in a formatted the output guide
 
 LINE_MAXLEN = 80
@@ -58,6 +63,10 @@ class GuideNode(object):
 
         # initialise list of warnings encountered
         self._warnings = []
+
+        # add a warning if the node name is over length
+        if len(self.name) > NODE_NAME_MAXLEN:
+            self.addwarning(f"name over maximum length ({NODE_NAME_MAXLEN})")
 
 
     def __repr__(self):

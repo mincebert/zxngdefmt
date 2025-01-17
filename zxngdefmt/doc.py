@@ -246,8 +246,10 @@ class GuideDoc(object):
                     if current_node:
                         self._nodes.append(current_node)
 
-                    # start a new node and skip to the next line in the file
+                    # start a new node
                     current_node = GuideNode(m.group("name"))
+
+                    # skip to the next line in the file
                     continue
 
                 # try to match node-level commands linking to another node
