@@ -48,6 +48,11 @@ DOC_CMDS_RE = re.compile(
                   r"@(?P<cmd>" + '|'.join(DOC_CMDS) + r")( (?P<value>.+))?")
 
 
+# maximum size of a document in bytes
+
+DOC_MAXSIZE = 65_535
+
+
 
 # --- classes ---
 

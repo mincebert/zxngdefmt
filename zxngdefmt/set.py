@@ -10,7 +10,7 @@ import os
 
 from .link import GuideNodeDocs, GuideIndex
 from .node import GuideNode, LINE_MAXLEN
-from .doc import GuideDoc
+from .doc import GuideDoc, DOC_MAXSIZE
 
 
 
@@ -98,6 +98,11 @@ class GuideSet(object):
                       as f):
                 print('\n'.join(doc.format(node_docs=self._node_docs)),
                       file=f)
+
+                # add a warning if this file is over the maximum size
+                # for a single NextGuide document
+                if f.tell() > DOC_MAXSIZE:
+                    doc.addwarning(f"over maximum size ({DOC_MAXSIZE} bytes)")
 
 
     def print(self):
