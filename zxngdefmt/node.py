@@ -26,6 +26,14 @@ from .token import (
 NODE_NAME_MAXLEN = 15
 
 
+# maximum number of links allowed in a node
+#
+# TODO: this is advertised as being 255 but it actually seems to be
+# lower; this issue needs to be investigated in the 'guide' program
+
+NODE_MAXLINKS = 220
+
+
 # maximum rendered length for a single line in a formatted the output guide
 
 LINE_MAXLEN = 80
@@ -34,6 +42,12 @@ LINE_MAXLEN = 80
 # valid types of links from a node
 
 _NODE_LINK_TYPES = ["prev", "next", "toc"]
+
+
+# special text to use as the link for a node link to indicate it should
+# be left blank (and avoid auto-filling a missing entry)
+
+NODE_LINK_NONE = '-'
 
 
 
@@ -82,7 +96,7 @@ class GuideNode(object):
         if type_ not in _NODE_LINK_TYPES:
             return ValueError(f"set invalid link type: {type_}")
 
-        self._links[type_] = target
+        self._links[type_] = target if target != NODE_LINK_NONE else None
 
 
     def setdefaultlink(self, type_, target):
@@ -238,6 +252,10 @@ class GuideNode(object):
             if link in self._links:
                 output.append(f"@{link} {self._links[link]}")
 
+        # number of links encountered so far in the node - we use this
+        # to track if we have too many and need to raise a warning
+        num_links = 0
+
 
         # --- subfunctions ---
 
@@ -346,6 +364,10 @@ class GuideNode(object):
 
         # go through the lines in this node
         for line in self._lines:
+            # count the number of links in this line and add it to the
+            # total for this node
+            num_links += len(re.findall(LINK_RE, line))
+
             # fix all the links in this line such that, if a link is to
             # a node in another document in the set, qualify it by
             # prefixing 'Document/'
@@ -395,6 +417,13 @@ class GuideNode(object):
         # we've finished the node, flush out anything assembled in the
         # line buffer
         writeline()
+
+        # if the number of links on this page exceed the maximum, add a
+        # a warning
+        if num_links > NODE_MAXLINKS:
+            self.addwarning(
+                f"number of links over maximum ({NODE_MAXLINKS}) -"
+                " excess links will be unselectable")
 
         # return the list of formatted lines
         return output
