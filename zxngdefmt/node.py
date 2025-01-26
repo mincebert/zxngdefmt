@@ -27,11 +27,8 @@ NODE_NAME_MAXLEN = 15
 
 
 # maximum number of links allowed in a node
-#
-# TODO: this is advertised as being 255 but it actually seems to be
-# lower; this issue needs to be investigated in the 'guide' program
 
-NODE_MAXLINKS = 220
+NODE_MAXLINKS = 255
 
 
 # maximum rendered length for a single line in a formatted the output guide
@@ -189,26 +186,12 @@ class GuideNode(object):
 
 
     def parseindex(self):
-        """Parse this node as an index, returning a GuideIndex() object
-        with all the terms and references.
+        """Parse this node as an index, returning the GuideIndex()
+        object with all the terms and references.
         """
 
-        # initialise the index
         index = GuideIndex()
-
-        # initialise the previous term found to 'not found yet'
-        prev_term = None
-
-        for line in self._lines:
-            # parse this line and get the term used in it (or the
-            # previous one, if one was not found, as this is continuing
-            # that)
-            term = index.parseline(line, prev_term)
-
-            # store the term from this line (or continued from a
-            # previous line) as the new previous one
-            prev_term = term
-
+        index.parselines(self._lines)
         return index
 
 

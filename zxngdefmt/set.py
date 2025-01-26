@@ -253,5 +253,12 @@ class GuideSet(object):
                                 f" name: @{set_index_name}")
 
             # replace the lines in the node (either existing, or new)
-            # with the set index
-            index_node.replacelines(set_index_lines)
+            # with the set index, sandwiched between the header and
+            # footer lines from the index node in this document, and
+            # separator blank lines
+            index_node.replacelines(
+                doc.getindex().header
+                + ['']
+                + set_index_lines
+                + ['']
+                + doc.getindex().footer)

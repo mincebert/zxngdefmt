@@ -266,6 +266,11 @@ class GuideIndex(object):
         # initialise the list of warnings to be empty
         self._warnings = []
 
+        # initialise the header and footer (text before and after the
+        # index terms)
+        self.header = []
+        self.footer = []
+
 
     def __repr__(self):
         """Printable version of the object useful for debugging.
@@ -352,9 +357,72 @@ class GuideIndex(object):
                 self_refs[add_ref] = add_ref_target
 
 
-    def parseline(self, line, prev_term=None):
+    def parselines(self, lines):
+        """Parse lines (typically from a node) as an index.  It will
+        populate all terms and their references in the index, as well
+        the index header and footer lines.
+
+        This method should only be called once per index.
+        """
+
+        # initialise the previous term found to 'not found yet'
+        prev_term = None
+
+        for line in lines:
+            # parse this line (adding the term and reference(s), if
+            # found) and get the term used in it (or the previous one,
+            # if one was not found, as this is continuing that)
+            term = self._parseline(line, prev_term)
+
+            # if a term was found, and we'd already started a footer,
+            # that footer turned out to be some non-index entry lines in
+            # the middle of an index that we can't handle (we can only
+            # handle a header and footer), so discard those and report a
+            # warning)
+            if term:
+                if self.footer:
+                    self._warnings.append(
+                        "ignoring intermediate block of lines in index"
+                        f" - count: {len(self.footer)} starting with:"
+                        f" {self.footer[0]}")
+                    self.footer = []
+
+            # we didn't find a term, so this should be a header or a
+            # footer ...
+            else:
+                # there are no terms yet, so it's part of the header
+                if not self._terms:
+                    self.header.append(line)
+
+                # we've got some terms, so this must be a footer (or
+                # intermediate text that we're going to discard when we
+                # find another term later, above)
+                #
+                # add the line to the footer unless it's blank and we
+                # haven't got any footer lines (which means it's a
+                # leading blank line we can ignore)
+                elif line or self.footer:
+                    self.footer.append(line)
+
+            # store the term from this line (or continued from a
+            # previous line) as the new previous one
+            prev_term = term
+
+        # we've got to the end of the lines, so we just need to trim of
+        # any trailing blank lines in the header
+        #
+        # loop while there are still header lines and the last header
+        # line is blank
+
+        while self.header and (not self.header[-1]):
+            # remove the last header line
+            self.header = self.header[0:-1]
+
+
+    def _parseline(self, line, prev_term=None):
         """Parse a line from a source index node and add the results to
-        the index held by this object.
+        the index held by this object.  If a term was parsed, it is
+        returned for the caller to supply as prev_term in the next call.
 
         Lines should be of the form:
 
@@ -483,9 +551,8 @@ class GuideIndex(object):
         # 255 is exceeded)
         num_links = 0
 
-        # initialise the returned lines list with 'Index' centred and a
-        # following blank line before the terms start
-        index_lines = ["@{c}@{h1}Index", ""]
+        # initialise the returned lines list
+        index_lines = []
 
         # work through the terms, sorted symbols first, then numbers,
         # then letters; the symbols are moved first (but retaining
