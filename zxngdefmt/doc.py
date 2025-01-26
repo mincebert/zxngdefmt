@@ -379,10 +379,7 @@ class GuideDoc(object):
         # output, if they are present and not the empty string or None
         for cmd in DOC_CMDS:
             if cmd in self._cmds:
-                if self._cmds[cmd]:
-                    output.append(f"@{cmd} {self._cmds[cmd]}"
-                                      if cmd in self._cmds
-                                      else '')
+                output.append(f"@{cmd} {self._cmds[cmd]}")
 
         # go through the nodes in the document in order
         for node in self._nodes:

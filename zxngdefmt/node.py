@@ -247,9 +247,11 @@ class GuideNode(object):
         # if the word wraps onto the next line
         pre_space = ""
 
-        # add the links to other documents (prev/next/toc)
+        # add the links to other documents (prev/next/toc) if they are
+        # defined for this node and they are not 'None' (which means
+        # explicitly not set)
         for link in _NODE_LINK_TYPES:
-            if link in self._links:
+            if (link in self._links) and self._links[link]:
                 output.append(f"@{link} {self._links[link]}")
 
         # number of links encountered so far in the node - we use this
