@@ -68,7 +68,7 @@ guide_set = GuideSet(args.file)
 
 # recreate and replace the indexes and make a set-wide one for the set
 if args.index:
-    guide_set.makesetindex()
+    guide_set.makeindices()
 
 # if we're writing out formatted guide files, do that, otherwise just
 # print the results to stdout

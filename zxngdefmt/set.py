@@ -53,9 +53,10 @@ class GuideSet(object):
         # other documents
         self._node_docs = GuideNodeDocs()
 
-        # initialise an empty index - if one is requested to be built,
-        # this will be replaced with a completed one
-        self._index = GuideIndex()
+        # initialise an empty dictionary of indices - this will be keyed
+        # on the node name of the index, as they are parsed, allowing
+        # multiple indices to be stored
+        self._indices = {}
 
         # initialise the list of warnings at the set level to empty
         self._warnings = []
@@ -79,7 +80,7 @@ class GuideSet(object):
             # add the index node to the set of 'always local' nodes
             index_node = doc.getindexnode()
             if index_node:
-                self._node_docs.addlocalnode(index_node.name)
+                self._node_docs.addcommonnode(index_node.name)
 
             # add the nodes in this document to the GuideNodeDocs
             # mapping object
@@ -148,10 +149,11 @@ class GuideSet(object):
         # these a generated after each document is processed
         warnings.extend(self._warnings)
 
-        # add in the warnings from the set index
-        warnings.extend(
-            [ "set index: " + warning
-                  for warning in self._index.getwarnings() ])
+        # add in the warnings from the set indices
+        for index in sorted(self._indices):
+            warnings.extend(
+                [ f"set index: {index} {warning}"
+                    for warning in self._indices[index].getwarnings() ])
 
         # return the composite list of warnings
         return warnings
@@ -170,87 +172,60 @@ class GuideSet(object):
         return nodes
 
 
-    def makesetindex(self, line_maxlen=LINE_MAXLEN):
-        """Make an consolidated index for the set, merging together the
-        indices in each document, and replace the index node in each
-        document with it (or add a new index node, if one does not
-        exist).
+    def makeindices(self, line_maxlen=LINE_MAXLEN):
+        """Make an consolidated indices for the set, merging together
+        the index pages with the same node name as each other.
+
+        This means that all index nodes which have the same name will
+        have the same entries across the set.  If a document has a
+        differently-named index node, however, it will be kept separate
+        (unless other documents have an index node with the same name,
+        then just those will be merged).
         """
 
-        # initialise an empty index then merge each document's index
-        # into it, creating a consolidated ones
-        self._index = GuideIndex()
+
+        # initialise an empty set of indices as a dictionary
+        #
+        # the dictionary will be keyed off each index node name across
+        # the set
+        self._indices = {}
+
+
+        # go through the documents in the set, building the consolidated
+        # indices
         for doc in self._docs:
-            self._index.merge(doc.getindex())
+            # get the name of this document's index node
+            doc_index_name = doc.getindexnode().name
 
-        # render out the consolidated index to a list of formatted lines
-        set_index_lines = self._index.format(line_maxlen)
+            # skip this document, if it doesn't have an index
+            if not doc_index_name:
+                continue
 
-        # initialise the set index node name to undefined - we'll set
-        # this to the name used in the first document in the set (or
-        # pick a sensible default)
-        set_index_name = None
+            # if we haven't already started an index with the same name
+            # as this document's index node, create one now
+            if doc_index_name not in self._indices:
+                self._indices[doc_index_name] = GuideIndex()
 
-        # work through the documents in the set, replacing (or adding)
-        # the index node with the consolidated version
+            # merge this document's index into the consolidated one
+            # under the same name
+            self._indices[doc_index_name].merge(doc.getindex())
+
+
+        # create a dictionary of formatted indices (keyed off the index
+        # node name)
+        formatted_indices = {
+            index_name: self._indices[index_name].format(line_maxlen)
+                for index_name in self._indices }
+
+
+        # go through the documents in the set, fixing up the indices
         for doc in self._docs:
-            # get the current index node (or None, if there isn't one)
+            # get this document's index node (or None, if there isn't one)
             index_node = doc.getindexnode()
 
-            # if we haven't got a set index node name yet (which means
-            # we're processing the first document in the set), we need
-            # to set that somehow ...
-            if not set_index_name:
-                if index_node:
-                    # we have an index node in this document - use the
-                    # name from that
-                    set_index_name = index_node.name
-
-                else:
-                    # we DON'T have an index node defined for this
-                    # document - use a default and add a warning
-
-                    set_index_name = DEFAULT_INDEX_NAME
-
-                    self.addwarning(
-                        "no index node defined in first document of a"
-                        " set - assuming default:"
-                        f" @{set_index_name}")
-
-
-            # if this document doesn't have an index node, we need to
-            # create one and will use the set (first or default) name
-            # for it ...
+            # skip this document, if it doesn't have an index
             if not index_node:
-                existing_node = doc.getnode(set_index_name)
-
-                if existing_node:
-                    # we have an existing node with the set name - add a
-                    # warning and use it, which will replace its
-                    # contents with our set index
-
-                    existing_node.addwarning(
-                        "existing node's name clashes with set index"
-                        " name - replacing contents of possible"
-                        " non-index node")
-
-                    index_node = existing_node
-
-                else:
-                    # we DON'T have an existing node with the set name
-                    # - create a new node with that name, add it to the
-                    # document and set it as the index node (we'll fill
-                    # in the content later)
-                    if not index_node:
-                        index_node = GuideNode(set_index_name)
-                        doc.setindexnode(index_node)
-
-            # we do have an existing index node - check if its name is
-            # different from the set name and add a warning if so
-            elif index_node.name != set_index_name:
-                doc.addwarning(f"index node: @{index_node.name} is"
-                                " inconsistent with set index node"
-                                f" name: @{set_index_name}")
+                continue
 
             # replace the lines in the node (either existing, or new)
             # with the set index, sandwiched between the header and
@@ -259,6 +234,6 @@ class GuideSet(object):
             index_node.replacelines(
                 doc.getindex().header
                 + ['']
-                + set_index_lines
+                + formatted_indices[index_node.name]
                 + ['']
                 + doc.getindex().footer)

@@ -195,10 +195,13 @@ class GuideNode(object):
         return index
 
 
-    def format(self, *, doc_name=None, node_docs={}, line_maxlen):
+    def format(self, *, doc, node_docs, line_maxlen):
         """Format the node for output, handling word wrap for the
         specified maximum line length, and qualifying links with
         document names, if required.
+
+        The 'doc' and 'node_docs' objects are required to fix up links
+        across documents in a set.
 
         The output is returned as a list of lines as strings.
         """
@@ -324,15 +327,15 @@ class GuideNode(object):
             required; qualifying them with the document name, if they
             are in a different document to the this node.
 
-            This function uses the doc_name and node_docs arguments to
+            This function uses the 'doc' and 'node_docs' arguments to
             the containing format() method.
             """
 
             text, target = m.group("link_text", "link_target")
 
             # fix up the target - if not found in node_docs, None will
-            # be returned
-            fixed_target = node_docs.fixlink(doc_name, target)
+            # be returned, indicating a broken link
+            fixed_target = node_docs.fixlink(doc, target)
 
             # if the target was not found, record a warning
             if fixed_target is None:

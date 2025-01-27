@@ -138,7 +138,7 @@ class GuideNodeDocs(object):
         # initialise the set of 'always local' nodes which exist in all
         # documents across a set and links are never rewritten to a node
         # in another document
-        self._local_nodes = set()
+        self._common_nodes = set()
 
 
     def __repr__(self):
@@ -166,46 +166,47 @@ class GuideNodeDocs(object):
 
         # go through the nodes in this new document
         for node_name in doc.getnodenames():
-            # if a node with this name already exists, add a warning to
-            # the document and skip adding it
-            if ((node_name not in self._local_nodes)
-                and (node_name in self._nodes)):
+            # check if we already have a node of that name
+            if node_name in self._nodes:
+                # we do - if it's not a common node, we add a warning
+                # that we have a duplicate node
+                if node_name not in self._common_nodes:
+                    doc.addwarning(
+                        f"node: @{node_name} same name already exists"
+                        f" in document: {self._nodes[node_name]} -"
+                        f" latter takes precedence for links")
 
-                doc.addwarning(
-                    f"node: @{node_name} same name already exists in"
-                    f" document: {self._nodes[node_name]} -"
-                    f" ignoring")
-
-                continue
-
-            # record this node as in this document
-            self._nodes[node_name] = doc_name
+            else:
+                # we don't have this node yet - record it against this
+                # document
+                self._nodes[node_name] = doc_name
 
 
-    def addlocalnode(self, node_name):
-        """Add the named local node to the set of nodes which can
-        exist across all documents in a set.
+    def addcommonnode(self, node_name):
+        """Add the named common node to the set of nodes which can exist
+        in multiple documents across a set without generating a warning.
+        Typically this is the index nodes.
         """
 
-        self._local_nodes.add(node_name)
+        self._common_nodes.add(node_name)
 
 
-    def fixlink(self, doc_name, target_name):
+    def fixlink(self, doc, target_name):
         """This function is supplied the name of a target node for a
-        link and the name of the document in which that link occurs.
-        The mapping dictionary is checked and, if the target is in a
-        different document, the link will be prefixed with 'Document/'.
+        link and the document in which that link occurs.  It returns a
+        'fixed' link, which is one qualified with the name of another
+        document, if the link targets a node not in the current
+        document.
 
-        If the target is in the same document, it is NOT qualified with
-        the document name and returned as is.
+        The following steps are checked in order of priority:
 
-        If the target is already prefixed with a document name, it is
-        assumed that the author explicitly wanted that document and it
-        is also left alone, regardless of whether that document is one
-        referred to in the mapping dictionary.
+        1. If the link contains '/', it's assumed to already be correct.
 
-        If the target node name could not be found, None is returned;
-        the caller can use this to correct the link or flag up an error.
+        2. If the target is in this document, leave it unqualified.
+
+        3. If the target does not exist, return None (= not found / broken).
+
+        4. Return the target prefixed with the document name and '/'.
         """
 
         # if the link is already qualified with a document name, assume
@@ -213,20 +214,19 @@ class GuideNodeDocs(object):
         if '/' in target_name:
             return target_name
 
-        # if the target node was not found, return None
+        # if the target is in the supplied document, we assume it's
+        # local and return it as is
+        if doc.getnode(target_name):
+            return target_name
+
+        # the link isn't in this document ...
+
+        # if the target node was not found across the set, return None
+        # to indicate it's a broken link
         if target_name not in self._nodes:
-            return
+            return None
 
-        # if the target node is in the 'always local' set, just return
-        # unqualified
-        if target_name in self._local_nodes:
-            return target_name
-
-        # if the target node is in this document, return it unqualified
-        if self._nodes[target_name] == doc_name:
-            return target_name
-
-        # the target is in another document - qualify it
+        # the target is in another document - return it qualified
         return self._nodes[target_name] + '/' + target_name
 
 

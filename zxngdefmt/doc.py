@@ -387,8 +387,7 @@ class GuideDoc(object):
             output.append('@' + ('-' * (line_maxlen - 1)))
 
             # format this node and add the lines to the output
-            output.extend(node.format(doc_name=self.getname(),
-                                      node_docs=node_docs,
+            output.extend(node.format(doc=self, node_docs=node_docs,
                                       line_maxlen=LINE_MAXLEN))
 
         # return the list of formatted lines
