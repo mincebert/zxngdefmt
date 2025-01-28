@@ -264,8 +264,15 @@ class GuideDoc(object):
                     current_node.setlink(*m.group("link", "name"))
                     continue
 
-                # anything else is a line of markup data in the node -
-                # we just store that as is and format it when required
+                # anything else is a line of markup data in the node ...
+
+                # we haven't started a node yet so we can't store this
+                # line - add a warning and skip the line
+                if not current_node:
+                    self.addwarning(f"node data: '{l} outside node - ignoring")
+                    continue
+
+                # add this line to the current node
                 current_node.appendline(l)
 
         # we're finished with the file - if we have a node we're
@@ -363,13 +370,20 @@ class GuideDoc(object):
         return True
 
 
-    def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN):
+    def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN, markup=True,
+               skip_index=False):
+
         """Format the document for output, with the document commands
         first, then the nodes, handling word wrap for the specified
         specified maximum line length, and qualifying links with
         document names, if required.
 
         The output is returned as a list of lines as strings.
+
+        If 'markup' is not set, a readable, plain text version of the
+        document will be generated.
+
+        'skip_index' will omit index nodes in the output.
         """
 
         # initialise the output as an empty list of lines
@@ -377,18 +391,33 @@ class GuideDoc(object):
 
         # go through the document commands and record them in the
         # output, if they are present and not the empty string or None
-        for cmd in DOC_CMDS:
-            if cmd in self._cmds:
-                output.append(f"@{cmd} {self._cmds[cmd]}")
+        if markup:
+            for cmd in DOC_CMDS:
+                if cmd in self._cmds:
+                    output.append(f"@{cmd} {self._cmds[cmd]}")
 
         # go through the nodes in the document in order
         for node in self._nodes:
+            # if this document has an index node, and this node is it,
+            # and we're skipping the index node, do that
+            if (skip_index
+                and self.getindexnode()
+                and (node.name == self.getindexnode().name)):
+
+                continue
+
             # add a line of dashes before this node as a separator
-            output.append('@' + ('-' * (line_maxlen - 1)))
+            if markup:
+                output.append('@' + ('-' * (line_maxlen - 1)))
+            else:
+                node_banner = "---[ " + node.name + " ]"
+                node_banner += '-' * (line_maxlen - len(node_banner) - 1)
+
+                output.extend(['', node_banner, ''])
 
             # format this node and add the lines to the output
             output.extend(node.format(doc=self, node_docs=node_docs,
-                                      line_maxlen=LINE_MAXLEN))
+                                      line_maxlen=LINE_MAXLEN, markup=markup))
 
         # return the list of formatted lines
         return output

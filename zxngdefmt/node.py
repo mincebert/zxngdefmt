@@ -12,6 +12,7 @@ from .token import (
     LINK_RE,
     LITERALLINE_RE,
     TOKEN_RE,
+    renderstring,
     rendertoken,
 )
 
@@ -195,7 +196,7 @@ class GuideNode(object):
         return index
 
 
-    def format(self, *, doc, node_docs, line_maxlen):
+    def format(self, *, doc, node_docs, line_maxlen, markup=True):
         """Format the node for output, handling word wrap for the
         specified maximum line length, and qualifying links with
         document names, if required.
@@ -203,13 +204,18 @@ class GuideNode(object):
         The 'doc' and 'node_docs' objects are required to fix up links
         across documents in a set.
 
+        'markup' specifies whether the returned data should contain
+        markup (True) or a plain text, readable version of the text
+        (False).
+
         The output is returned as a list of lines as strings.
         """
 
 
         # the list of output lines to be returned, starting with the
-        # '@node' command, identifying the node
-        output = ["@node " + self.name]
+        # '@node' command, identifying the node, if we're using markup,
+        # or the empty list if not
+        output = ["@node " + self.name] if markup else []
 
         # the current line being assembled - we store two versions:
         #
@@ -233,12 +239,13 @@ class GuideNode(object):
         # if the word wraps onto the next line
         pre_space = ""
 
-        # add the links to other documents (prev/next/toc) if they are
-        # defined for this node and they are not 'None' (which means
-        # explicitly not set)
-        for link in _NODE_LINK_TYPES:
-            if (link in self._links) and self._links[link]:
-                output.append(f"@{link} {self._links[link]}")
+        # if we're including markup, add the links to other documents
+        # (prev/next/toc) if they are defined for this node and they are
+        # not 'None' (which means explicitly not set)
+        if markup:
+            for link in _NODE_LINK_TYPES:
+                if (link in self._links) and self._links[link]:
+                    output.append(f"@{link} {self._links[link]}")
 
         # number of links encountered so far in the node - we use this
         # to track if we have too many and need to raise a warning
@@ -256,7 +263,7 @@ class GuideNode(object):
             nonlocal line_markup, line_render, pre_space
 
             if line_markup:
-                output.append(line_markup)
+                output.append(line_markup if markup else line_render)
 
                 line_markup = ''
                 line_render = ''
@@ -314,12 +321,16 @@ class GuideNode(object):
 
         def appendtoken(token):
             """Add the supplied token to the current word.
+
+            This will add the markup, if 'markup' is set, or the plain
+            text rendering, if not.  If plain text is requested, links
+            will be 'bracketed' by rendertoken().
             """
 
             nonlocal word_markup, word_render
 
             word_markup += token
-            word_render += rendertoken(token)
+            word_render += rendertoken(token, link_bracket=not markup)
 
 
         def fixlink_repl(m):
@@ -371,8 +382,12 @@ class GuideNode(object):
                 # something in it)
                 writeline()
 
-                # add the literal line
-                output.append(line)
+                # add the literal line - this will contain markup, if
+                # this is requested, or the rendered, plain text version
+                # with link 'bracketing' if not
+                output.append(
+                    line if markup
+                        else renderstring(line, link_bracket=not markup))
 
                 continue
 

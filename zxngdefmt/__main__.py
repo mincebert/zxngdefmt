@@ -45,6 +45,15 @@ parser.add_argument(
     help="print a list of all nodes in the set to standard output")
 
 parser.add_argument(
+    "-r", "--readable",
+    action="store_true",
+    default=False,
+    help="render a readable, plain text version of the guide set to"
+         " standard output: remove markup, skip index pages, highlight"
+         " links, don't print filenames; only used if -o is not"
+         " specified")
+
+parser.add_argument(
     "-v", "--version",
     action="version",
     version=__version__)
@@ -71,11 +80,11 @@ if args.index:
     guide_set.makeindices()
 
 # if we're writing out formatted guide files, do that, otherwise just
-# print the results to stdout
+# print the results to stdout (in readable format, if requested)
 if args.output_dir:
     guide_set.writefiles(args.output_dir)
 else:
-    guide_set.print()
+    guide_set.print(readable=args.readable)
 
 # if the 'list nodes' option is used, print the names of all nodes,
 # alongside the document(s) in which they are defined

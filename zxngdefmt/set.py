@@ -106,19 +106,31 @@ class GuideSet(object):
                     doc.addwarning(f"over maximum size ({DOC_MAXSIZE} bytes)")
 
 
-    def print(self):
+    def print(self, *, readable=False):
         """Print out the set of guide documents to standard output, with
         a separator between each one.
 
-        This is intended more as a debugging function rather than useful
-        program operation.
+        The 'readable' option controls whether a plain text version is
+        rendered, rather than one including markup.  This will also skip
+        any index nodes in each document, as they generally aren't very
+        useful, in this format.
+
+        'readable' not being set is primarily useful for debugging
+        purposes only.
         """
 
         for doc in self._docs:
-            print()
-            print(f"=== {doc.getname()} ===")
-            print()
-            print('\n'.join(doc.format(node_docs=self._node_docs)))
+            # we only print the filename of this document is rendering
+            # a non-readable 'debugging' format
+            if not readable:
+                print()
+                print(f"=== {doc.getname()} ===")
+                print()
+
+            # print the formatted lines
+            for line in doc.format(node_docs=self._node_docs,
+                                   markup=not readable, skip_index=readable):
+                print(line)
 
 
     def addwarning(self, warning):
@@ -194,21 +206,21 @@ class GuideSet(object):
         # go through the documents in the set, building the consolidated
         # indices
         for doc in self._docs:
-            # get the name of this document's index node
-            doc_index_name = doc.getindexnode().name
+            # get this document's index node
+            doc_index = doc.getindexnode()
 
             # skip this document, if it doesn't have an index
-            if not doc_index_name:
+            if not doc_index:
                 continue
 
             # if we haven't already started an index with the same name
             # as this document's index node, create one now
-            if doc_index_name not in self._indices:
-                self._indices[doc_index_name] = GuideIndex()
+            if doc_index.name not in self._indices:
+                self._indices[doc_index.name] = GuideIndex()
 
             # merge this document's index into the consolidated one
             # under the same name
-            self._indices[doc_index_name].merge(doc.getindex())
+            self._indices[doc_index.name].merge(doc.getindex())
 
 
         # create a dictionary of formatted indices (keyed off the index

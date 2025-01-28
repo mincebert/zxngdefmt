@@ -96,19 +96,28 @@ LITERALLINE_RE = re.compile(
 
 
 
-def rendertoken(t):
+def rendertoken(t, *, link_bracket=False):
     """Return a single rendered NextGuide token (which could be a
     literal piece of text, a command, or block of spaces) into the plain
     text equivalent (without formatting) that would be displayed on
     screen.
 
     This is used to work out the length of rendered markup and calculate
-    displayed line lengths; it is not used to generate output.
+    displayed line lengths; it is not used when writing out guide files,
+    unless a readable, plain text version is requested.
+
+    'link_bracket' will cause links with spaces at the beginning and end
+    of the link text to have those replaced by angle brackets ('<' and
+    '>').  This doesn't change their length but does highlight that they
+    would have been links (and makes the multiple spaces look less odd).
     """
 
     # if the token is a link, use the displayed text field
     m = LINK_RE.match(t)
     if m:
+        t = m["link_text"]
+        if link_bracket and t.startswith(' ') and t.endswith(' '):
+            return '<' + t[1:-1] + '>'
         return m["link_text"]
 
     # if the token is a literal character, convert that to the displayed
@@ -135,11 +144,13 @@ def rendertoken(t):
 
 
 
-def renderstring(s):
+def renderstring(s, *, link_bracket=False):
     """Return a string containing tokens (literals, commands, spaces,
     etc.) rendered into their plain text equivalent.  It is a wrapper
     around rendertoken() which iteratively renders all the tokens in a
     string.
+
+    The 'link_bracket' argument is passed on to rendertoken().
     """
 
     # start with the rendered string empty
@@ -157,6 +168,6 @@ def renderstring(s):
 
         token, remainder = m.group("token", "remainder")
 
-        r += rendertoken(token)
+        r += rendertoken(token, link_bracket=link_bracket)
 
     return r
