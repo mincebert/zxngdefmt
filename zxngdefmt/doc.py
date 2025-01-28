@@ -363,13 +363,15 @@ class GuideDoc(object):
         return True
 
 
-    def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN):
+    def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN, markup=True):
         """Format the document for output, with the document commands
         first, then the nodes, handling word wrap for the specified
         specified maximum line length, and qualifying links with
         document names, if required.
 
         The output is returned as a list of lines as strings.
+        
+        TODO
         """
 
         # initialise the output as an empty list of lines
@@ -377,18 +379,25 @@ class GuideDoc(object):
 
         # go through the document commands and record them in the
         # output, if they are present and not the empty string or None
-        for cmd in DOC_CMDS:
-            if cmd in self._cmds:
-                output.append(f"@{cmd} {self._cmds[cmd]}")
+        if markup:
+            for cmd in DOC_CMDS:
+                if cmd in self._cmds:
+                    output.append(f"@{cmd} {self._cmds[cmd]}")
 
         # go through the nodes in the document in order
         for node in self._nodes:
             # add a line of dashes before this node as a separator
-            output.append('@' + ('-' * (line_maxlen - 1)))
+            if markup:
+                output.append('@' + ('-' * (line_maxlen - 1)))
+            else:
+                node_banner = "---[ " + node.name + " ]"
+                node_banner += '-' * (line_maxlen - len(node_banner) - 1)
+
+                output.extend(['', node_banner, ''])
 
             # format this node and add the lines to the output
             output.extend(node.format(doc=self, node_docs=node_docs,
-                                      line_maxlen=LINE_MAXLEN))
+                                      line_maxlen=LINE_MAXLEN, markup=markup))
 
         # return the list of formatted lines
         return output

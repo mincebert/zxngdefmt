@@ -106,19 +106,22 @@ class GuideSet(object):
                     doc.addwarning(f"over maximum size ({DOC_MAXSIZE} bytes)")
 
 
-    def print(self):
+    def print(self, *, markup=True):
         """Print out the set of guide documents to standard output, with
         a separator between each one.
 
         This is intended more as a debugging function rather than useful
         program operation.
+        
+        TODO
         """
 
         for doc in self._docs:
             print()
             print(f"=== {doc.getname()} ===")
             print()
-            print('\n'.join(doc.format(node_docs=self._node_docs)))
+            print('\n'.join(doc.format(
+                                node_docs=self._node_docs, markup=markup)))
 
 
     def addwarning(self, warning):

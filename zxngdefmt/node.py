@@ -12,6 +12,7 @@ from .token import (
     LINK_RE,
     LITERALLINE_RE,
     TOKEN_RE,
+    renderstring,
     rendertoken,
 )
 
@@ -195,7 +196,7 @@ class GuideNode(object):
         return index
 
 
-    def format(self, *, doc, node_docs, line_maxlen):
+    def format(self, *, doc, node_docs, line_maxlen, markup=True):
         """Format the node for output, handling word wrap for the
         specified maximum line length, and qualifying links with
         document names, if required.
@@ -204,12 +205,14 @@ class GuideNode(object):
         across documents in a set.
 
         The output is returned as a list of lines as strings.
+        
+        TODO
         """
 
 
         # the list of output lines to be returned, starting with the
         # '@node' command, identifying the node
-        output = ["@node " + self.name]
+        output = ["@node " + self.name] if markup else []
 
         # the current line being assembled - we store two versions:
         #
@@ -236,9 +239,10 @@ class GuideNode(object):
         # add the links to other documents (prev/next/toc) if they are
         # defined for this node and they are not 'None' (which means
         # explicitly not set)
-        for link in _NODE_LINK_TYPES:
-            if (link in self._links) and self._links[link]:
-                output.append(f"@{link} {self._links[link]}")
+        if markup:
+            for link in _NODE_LINK_TYPES:
+                if (link in self._links) and self._links[link]:
+                    output.append(f"@{link} {self._links[link]}")
 
         # number of links encountered so far in the node - we use this
         # to track if we have too many and need to raise a warning
@@ -256,7 +260,7 @@ class GuideNode(object):
             nonlocal line_markup, line_render, pre_space
 
             if line_markup:
-                output.append(line_markup)
+                output.append(line_markup if markup else line_render)
 
                 line_markup = ''
                 line_render = ''
@@ -372,7 +376,7 @@ class GuideNode(object):
                 writeline()
 
                 # add the literal line
-                output.append(line)
+                output.append(line if markup else renderstring(line))
 
                 continue
 

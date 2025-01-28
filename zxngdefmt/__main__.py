@@ -45,6 +45,12 @@ parser.add_argument(
     help="print a list of all nodes in the set to standard output")
 
 parser.add_argument(
+    "-p", "--plain",
+    action="store_true",
+    default=False,
+    help="print out a plain text version of the files")
+
+parser.add_argument(
     "-v", "--version",
     action="version",
     version=__version__)
@@ -75,7 +81,7 @@ if args.index:
 if args.output_dir:
     guide_set.writefiles(args.output_dir)
 else:
-    guide_set.print()
+    guide_set.print(markup=not args.plain)
 
 # if the 'list nodes' option is used, print the names of all nodes,
 # alongside the document(s) in which they are defined
