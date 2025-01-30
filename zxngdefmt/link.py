@@ -567,7 +567,7 @@ class GuideIndex(object):
             # character, if it's 0-9 or A-Z (anything else returns an
             # empty string, so are grouped under that)
             term_group = re.match(
-                r"([0-9A-Z]?)", term_text, re.IGNORECASE).group(1)
+                r"([0-9A-Z]?)", term_text, re.IGNORECASE).group(1).upper()
 
             # if the group of this term is different from the previous
             # one, we need to insert a blank line
