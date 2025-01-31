@@ -2,7 +2,7 @@
 
 
 from .doc import GuideDoc
-from .link import GuideIndex
+from .index import GuideIndex, indextermkey_factory
 from .node import GuideNode
 from .set import GuideSet
 
@@ -17,4 +17,5 @@ __all__ = [
     "GuideIndex",
     "GuideNode",
     "GuideSet",
+    "indextermkey_factory",
 ]

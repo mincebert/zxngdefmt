@@ -6,7 +6,7 @@
 
 import re
 
-from .link import GuideIndex
+from .index import GuideIndex
 
 from .token import (
     LINK_RE,

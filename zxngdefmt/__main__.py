@@ -3,10 +3,9 @@
 
 
 import argparse
-import os
 import sys
 
-from . import __version__, GuideSet
+from . import __version__, GuideSet, indextermkey_factory
 
 
 
@@ -86,9 +85,13 @@ args = parser.parse_args()
 # read in the specified list of NextGuide files
 guide_set = GuideSet(args.file)
 
+# use a factory function to make a function which will return the key
+# for index term sorting and grouping
+indextermkey_fn = indextermkey_factory(args.index_term_prefix)
+
 # recreate and replace the indexes and make a set-wide one for the set
 if args.index:
-    guide_set.makeindices(index_term_prefixes=args.index_term_prefix)
+    guide_set.makeindices(indextermkey=indextermkey_fn)
 
 # if we're writing out formatted guide files, do that, otherwise just
 # print the results to stdout (in readable format, if requested)

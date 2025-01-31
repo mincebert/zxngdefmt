@@ -7,7 +7,7 @@
 import os
 import re
 
-from .link import GuideIndex
+from .index import GuideIndex
 from .node import GuideNode, LINE_MAXLEN
 
 from .token import (

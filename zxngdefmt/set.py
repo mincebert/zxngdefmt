@@ -8,10 +8,10 @@
 
 import os
 
-from .link import GuideNodeDocs, GuideIndex
+from .index import GuideNodeDocs, GuideIndex
 from .node import LINE_MAXLEN
 from .doc import GuideDoc, DOC_MAXSIZE
-from .link import indextermkey_factory
+
 
 
 # --- constants ---
@@ -23,6 +23,20 @@ from .link import indextermkey_factory
 # The default name for an index node, if one is not defined.
 
 DEFAULT_INDEX_NAME = "INDEX"
+
+
+
+# --- functions ---
+
+
+
+def _identity(i):
+    """Simple identity function which returns the single argument it is
+    passed.  It is used as the default for the 'indextermkey' argument
+    in GuideSet.makeindices().
+    """
+
+    return i
 
 
 
@@ -184,7 +198,8 @@ class GuideSet(object):
         return nodes
 
 
-    def makeindices(self, *, line_maxlen=LINE_MAXLEN, index_term_prefixes=[]):
+    def makeindices(self, *, line_maxlen=LINE_MAXLEN,
+                    indextermkey=_identity):
 
         """Make an consolidated indices for the set, merging together
         the index pages with the same node name as each other.
@@ -200,11 +215,8 @@ class GuideSet(object):
         line_maxlen -- the maximum line length; lines longer than this
         will be word-wrapped (unless matching the 'literal' format).
 
-        index_term_prefixes -- a list of strings which, if present,
-        will be removed from the front of terms when sorting and
-        grouping them - for example, if ['.', '- '] is supplied, terms
-        such as '.term' and '- arg' will be sorted as 'term' and 'arg'
-        and grouped with other 't' and 'a' terms.
+        indextermkey -- a function which maps a term to its key to use
+        use when sorting and grouping them in the index
         """
 
 
@@ -213,10 +225,6 @@ class GuideSet(object):
         # the dictionary will be keyed off each index node name across
         # the set
         self._indices = {}
-
-        # use the factory function to make a function which will return
-        # the key for index term sorting and grouping
-        indextermkey = indextermkey_factory(index_term_prefixes)
 
         # go through the documents in the set, building the consolidated
         # indices
@@ -231,8 +239,8 @@ class GuideSet(object):
             # if we haven't already started an index with the same name
             # as this document's index node, create one now
             if doc_index.name not in self._indices:
-                self._indices[doc_index.name] = GuideIndex(
-                                                    termkey=indextermkey)
+                self._indices[doc_index.name] = (
+                    GuideIndex(termkey=indextermkey))
 
             # merge this document's index into the consolidated one
             # under the same name
