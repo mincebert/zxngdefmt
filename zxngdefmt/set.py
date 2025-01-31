@@ -9,7 +9,7 @@
 import os
 
 from .link import GuideNodeDocs, GuideIndex
-from .node import GuideNode, LINE_MAXLEN
+from .node import LINE_MAXLEN
 from .doc import GuideDoc, DOC_MAXSIZE
 from .link import indextermkey_factory
 
