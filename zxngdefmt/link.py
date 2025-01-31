@@ -70,6 +70,41 @@ INDEX_REFS_RE = re.compile(
 
 
 
+def indextermkey_factory(ignore_chars):
+    """Factory function to make a function which will return the sort
+    key to be used by a term in the index.  The first character of this
+    string will also be used to group terms in the index.
+
+    The generated function will to be supplied to GuideIndex().
+
+    The function will use the following rules in order:
+
+    1.  If the term starts with a character in the list ignore_chars,
+        that character will be removed and the rest of the string used.
+        This can be used to remove leading '.'s.
+
+    2.  If the term starts with anything other than a number or letter,
+        a space will be prefixed, causing that entry to appear before
+        the entries with numbers and letters at the start.
+
+    3.  Anything else is returned as is.
+
+    All returned terms will be lower-cased to remove case from the sort
+    criteria.
+    """
+
+    def indextermkey(term):
+        if term[0] in ignore_chars:
+            r = term[1:]
+            return r.lower() if r else term
+        if not re.match("[0-9A-Z]", term, re.IGNORECASE):
+            return ' ' + term.lower()
+        return term.lower()
+
+    return indextermkey
+
+
+
 def linkcmd(text, target):
     """Generate a command for a link, given the specified text and a
     target.
@@ -254,8 +289,14 @@ class GuideIndex(object):
     """
 
 
-    def __init__(self):
+    def __init__(self, *, termkey=indextermkey_factory([])):
         """Initialise a GuideIndex object.
+
+        Keyword arguments:
+
+        termkey -- a function which takes a term in the index and
+        returns the sorting key; the first character of this sort key is
+        also used to group terms in the index.
         """
 
         super().__init__()
@@ -270,6 +311,9 @@ class GuideIndex(object):
         # index terms)
         self.header = []
         self.footer = []
+
+        # store the function to determine the key for a given term
+        self.termkey = termkey
 
 
     def __repr__(self):
@@ -536,10 +580,8 @@ class GuideIndex(object):
         longer than this, the references will start on the following
         line.
 
-        The terms are sorted into ASCIIbetical order, with all the non
-        numeric and alphabetic characters coming first.  Blank lines
-        will be inserted between the symbols and alphanumeric
-        characters, as well as between each number and letter group.
+        The terms are sorted according to the 'termkey' function
+        supplied to the constructor.
         """
 
         # store the previous term group (space for a symbol [see below],
@@ -554,20 +596,12 @@ class GuideIndex(object):
         # initialise the returned lines list
         index_lines = []
 
-        # work through the terms, sorted symbols first, then numbers,
-        # then letters; the symbols are moved first (but retaining
-        # ASCIIbetical order) by prefixing them with a space character)
-        for term_text in (
-            sorted(self,
-                   key=lambda s: s.lower()
-                                     if re.match("[0-9A-Z]", s, re.IGNORECASE)
-                                     else (' ' + s))):
-
-            # get the grouping of this term, based on the first
-            # character, if it's 0-9 or A-Z (anything else returns an
-            # empty string, so are grouped under that)
-            term_group = re.match(
-                r"([0-9A-Z]?)", term_text, re.IGNORECASE).group(1).upper()
+        # work through the terms using the termkey function to sort them
+        # into order
+        for term_text in sorted(self, key=self.termkey):
+            # the grouping for this term is the first character of the
+            # sort key; if that was empty, we use a space
+            term_group = (self.termkey(term_text) or ' ')[0]
 
             # if the group of this term is different from the previous
             # one, we need to insert a blank line

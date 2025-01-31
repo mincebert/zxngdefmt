@@ -34,6 +34,14 @@ parser.add_argument(
     help="recreate index pages, including common index across set")
 
 parser.add_argument(
+    "-I", "--index-ignore",
+    default=[],
+    action="append",
+    help="leading character to ignore when sorting and grouping index"
+         " terms - e.g. if set to '.' then '.term' as a term will be"
+         " sorted and grouped under 't'")
+
+parser.add_argument(
     "-w", "--no-warnings",
     action="store_true",
     help="suppress printing of warnings encountered during formatting"
@@ -77,7 +85,7 @@ guide_set = GuideSet(args.file)
 
 # recreate and replace the indexes and make a set-wide one for the set
 if args.index:
-    guide_set.makeindices()
+    guide_set.makeindices(index_ignore=args.index_ignore)
 
 # if we're writing out formatted guide files, do that, otherwise just
 # print the results to stdout (in readable format, if requested)

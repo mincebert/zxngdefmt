@@ -11,7 +11,7 @@ import os
 from .link import GuideNodeDocs, GuideIndex
 from .node import GuideNode, LINE_MAXLEN
 from .doc import GuideDoc, DOC_MAXSIZE
-
+from .link import indextermkey_factory
 
 
 # --- constants ---
@@ -184,7 +184,7 @@ class GuideSet(object):
         return nodes
 
 
-    def makeindices(self, line_maxlen=LINE_MAXLEN):
+    def makeindices(self, *, line_maxlen=LINE_MAXLEN, index_ignore=[]):
         """Make an consolidated indices for the set, merging together
         the index pages with the same node name as each other.
 
@@ -193,6 +193,17 @@ class GuideSet(object):
         differently-named index node, however, it will be kept separate
         (unless other documents have an index node with the same name,
         then just those will be merged).
+
+        Keyword arguments:
+
+        line_maxlen -- the maximum line length; lines longer than this
+        will be word-wrapped (unless matching the 'literal' format).
+
+        index_ignore -- a list of characters which will be ignored when
+        sorting and grouping terms in the index - for example, if ['.',
+        '-'] is supplied, terms such as '.term' and '-arg' will be
+        sorted as 'term' and 'arg' and grouped with other 't' and 'a'
+        terms.
         """
 
 
@@ -202,6 +213,9 @@ class GuideSet(object):
         # the set
         self._indices = {}
 
+        # use the factory function to make a function which will return
+        # the key for index term sorting and grouping
+        indextermkey = indextermkey_factory(index_ignore)
 
         # go through the documents in the set, building the consolidated
         # indices
@@ -216,7 +230,8 @@ class GuideSet(object):
             # if we haven't already started an index with the same name
             # as this document's index node, create one now
             if doc_index.name not in self._indices:
-                self._indices[doc_index.name] = GuideIndex()
+                self._indices[doc_index.name] = GuideIndex(
+                                                    termkey=indextermkey)
 
             # merge this document's index into the consolidated one
             # under the same name
