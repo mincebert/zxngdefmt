@@ -33,6 +33,13 @@ parser.add_argument(
     help="recreate index pages, including common index across set")
 
 parser.add_argument(
+    "-I", "--subindex",
+    default=[],
+    action="append",
+    help="additional node name to process as a subindex, besides the"
+         " one named in the '@index' document command")
+
+parser.add_argument(
     "-p", "--index-term-prefix",
     metavar="PREFIX",
     default=[],
@@ -83,13 +90,13 @@ args = parser.parse_args()
 
 
 # read in the specified list of NextGuide files
-guide_set = GuideSet(args.file)
+guide_set = GuideSet(args.file, subindex_names=args.subindex)
 
 # use a factory function to make a function which will return the key
 # for index term sorting and grouping
 indextermkey_fn = indextermkey_factory(args.index_term_prefix)
 
-# recreate and replace the indexes and make a set-wide one for the set
+# parse, recreate and replace the indices with formatted, set-wide ones
 if args.index:
     guide_set.makeindices(indextermkey=indextermkey_fn)
 

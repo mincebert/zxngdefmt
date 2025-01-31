@@ -10,7 +10,7 @@ import os
 
 from .index import GuideNodeDocs, GuideIndex
 from .node import LINE_MAXLEN
-from .doc import GuideDoc, DOC_MAXSIZE
+from .doc import GuideDoc, DOC_CMD_INDEX, DOC_MAXSIZE
 
 
 
@@ -50,101 +50,51 @@ class GuideSet(object):
     """
 
 
-    def __init__(self, filenames):
+    def __init__(self, filenames, *, subindex_names=set()):
         """Initialise the set of documents by reading in the supplied
-        files.
+        list of filenames.
+
+        Keyword arguments:
+
+        subindex_names -- a list of node names which will also be
+        treated as index nodes and combined across the set; this is
+        useful if there are additional nodes acting as indices, separate
+        from the one named with the '@index' document command.
         """
 
         super().__init__()
 
-        # initialise a list of documents in the set
+        # initialise a list of documents in the set as empty
         self._docs = []
-
-        # initialise a dictionary mapping nodes to documents
-        #
-        # this is used to provide an overall list of all nodes, and to
-        # qualify links with document names, when the link to nodes in
-        # other documents
-        self._node_docs = GuideNodeDocs()
 
         # initialise an empty dictionary of indices - this will be keyed
         # on the node name of the index, as they are parsed, allowing
         # multiple indices to be stored
         self._indices = {}
 
+        # initialise a dictionary mapping nodes to documents
+        #
+        # this is used to provide an overall list of all nodes, and to
+        # qualify links with document names, when the link to nodes in
+        # other documents
+        #
+        # we add all the subindex names to the 'common nodes' list to
+        # avoid warnings if any appear in multiple documents; the index
+        # named with '@index' in each document will be added as the
+        # files are read later
+        self._node_docs = GuideNodeDocs()
+        for subindex_name in subindex_names:
+            self._node_docs.addcommonnode(subindex_name)
+
+        # also store the list of subindex node names from the supplied
+        # argument as we need it when we read the documents
+        self._subindex_names = subindex_names
+
         # initialise the list of warnings at the set level to empty
         self._warnings = []
 
         # read in the document files in the set
         self.readfiles(filenames)
-
-
-    def readfiles(self, filenames):
-        """Read the list of document files into a set.
-        """
-
-        # go through the supplied list of filenames
-        for filename in filenames:
-            # read in that file and make a document
-            doc = GuideDoc(filename)
-
-            # add this document to the list of documents in the set
-            self._docs.append(doc)
-
-            # add the index node to the set of 'always local' nodes
-            index_node = doc.getindexnode()
-            if index_node:
-                self._node_docs.addcommonnode(index_node.name)
-
-            # add the nodes in this document to the GuideNodeDocs
-            # mapping object
-            self._node_docs.addnodes(doc)
-
-
-    def writefiles(self, dir):
-        """Write out the set to a series of files in the specified
-        directory.
-
-        The filenames will be the document names with '.gde' suffixed.
-        """
-
-        for doc in self._docs:
-            with (open(os.path.join(dir, doc.getname() + ".gde"), 'w')
-                      as f):
-                print('\n'.join(doc.format(node_docs=self._node_docs)),
-                      file=f)
-
-                # add a warning if this file is over the maximum size
-                # for a single NextGuide document
-                if f.tell() > DOC_MAXSIZE:
-                    doc.addwarning(f"over maximum size ({DOC_MAXSIZE} bytes)")
-
-
-    def print(self, *, readable=False):
-        """Print out the set of guide documents to standard output, with
-        a separator between each one.
-
-        The 'readable' option controls whether a plain text version is
-        rendered, rather than one including markup.  This will also skip
-        any index nodes in each document, as they generally aren't very
-        useful, in this format.
-
-        'readable' not being set is primarily useful for debugging
-        purposes only.
-        """
-
-        for doc in self._docs:
-            # we only print the filename of this document is rendering
-            # a non-readable 'debugging' format
-            if not readable:
-                print()
-                print(f"=== {doc.getname()} ===")
-                print()
-
-            # print the formatted lines
-            for line in doc.format(node_docs=self._node_docs,
-                                   markup=not readable, skip_index=readable):
-                print(line)
 
 
     def addwarning(self, warning):
@@ -185,30 +135,103 @@ class GuideSet(object):
         return warnings
 
 
+    def readfiles(self, filenames):
+        """Read the list of document files into a set.
+        """
+
+        # go through the supplied list of filenames
+        for filename in filenames:
+            # read in that file and make a document
+            doc = GuideDoc(filename, subindex_names=self._subindex_names)
+
+            # add this document to the list of documents in the set
+            self._docs.append(doc)
+
+            # add the index node to the set of 'always local' nodes
+            index_node_name = doc.getcmd(DOC_CMD_INDEX)
+            if index_node_name:
+                self._node_docs.addcommonnode(index_node_name)
+
+            # add the nodes in this document to the GuideNodeDocs
+            # mapping object
+            self._node_docs.addnodes(doc)
+
+
+    def writefiles(self, dir):
+        """Write out the set to a series of files in the specified
+        directory.
+
+        The filenames will be the document names with '.gde' suffixed.
+        """
+
+        for doc in self._docs:
+            with (open(os.path.join(dir, doc.getname() + ".gde"), 'w')
+                      as f):
+                print('\n'.join(doc.format(node_docs=self._node_docs)),
+                      file=f)
+
+                # add a warning if this file is over the maximum size
+                # for a single NextGuide document
+                if f.tell() > DOC_MAXSIZE:
+                    doc.addwarning(f"over maximum size: {DOC_MAXSIZE} bytes")
+
+
+    def print(self, *, readable=False):
+        """Print out the set of guide documents to standard output, with
+        a separator between each one.
+
+        The 'readable' option controls whether a plain text version is
+        rendered, rather than one including markup.  This will also skip
+        any index nodes in each document, as they generally aren't very
+        useful, in this format.
+
+        'readable' not being set is primarily useful for debugging
+        purposes only.
+        """
+
+        for doc in self._docs:
+            # we only print the filename of this document is rendering
+            # a non-readable 'debugging' format
+            if not readable:
+                print()
+                print(f"=== {doc.getname()} ===")
+                print()
+
+            # print the formatted lines
+            for line in doc.format(node_docs=self._node_docs,
+                                   markup=not readable, skip_index=readable):
+                print(line)
+
+
     def getnodedocs(self):
         """Return a dictionary keyed on the name of all nodes in the
         set, with the values as a list of the documents in which that
         node is defined.
+
+        This is primarily useful as a debugging or informational
+        function.
         """
 
-        nodes = {}
+        # create a dictionary of node names
+        node_names = {}
+
+        # go through the documents in the set, adding the names of all
+        # the nodes to their entry in the above dictionary, creating it,
+        # if required
         for doc in self._docs:
             for node_name in doc.getnodenames():
-                nodes.setdefault(node_name, []).append(doc.getname())
-        return nodes
+                node_names.setdefault(node_name, []).append(doc.getname())
+
+        # return the dictionary
+        return node_names
 
 
-    def makeindices(self, *, line_maxlen=LINE_MAXLEN,
-                    indextermkey=_identity):
-
-        """Make an consolidated indices for the set, merging together
-        the index pages with the same node name as each other.
+    def makeindices(self, *, line_maxlen=LINE_MAXLEN, indextermkey=_identity):
+        """Make a consolidated indices for the set, merging together the
+        index pages with the same node name as each other.
 
         This means that all index nodes which have the same name will
-        have the same entries across the set.  If a document has a
-        differently-named index node, however, it will be kept separate
-        (unless other documents have an index node with the same name,
-        then just those will be merged).
+        be combined and have the same entries across the set.
 
         Keyword arguments:
 
@@ -216,9 +239,8 @@ class GuideSet(object):
         will be word-wrapped (unless matching the 'literal' format).
 
         indextermkey -- a function which maps a term to its key to use
-        use when sorting and grouping them in the index
+        use when sorting and grouping them in the index.
         """
-
 
         # initialise an empty set of indices as a dictionary
         #
@@ -229,47 +251,47 @@ class GuideSet(object):
         # go through the documents in the set, building the consolidated
         # indices
         for doc in self._docs:
-            # get this document's index node
-            doc_index = doc.getindexnode()
+            # parse the indices in this document (which will consist of
+            # the node named by the '@index' command, plus the
+            # additional subindex nodes)
+            doc.parseindices()
 
-            # skip this document, if it doesn't have an index
-            if not doc_index:
-                continue
+            # work through the indices in the document
+            for index_name in doc.getindices():
+                # add this index name to the common nodes set for the
+                # consolidated index (so we don't create warnings about
+                # the node existing in multiple documents, etc.)
+                self._node_docs.addcommonnode(index_name)
 
-            # if we haven't already started an index with the same name
-            # as this document's index node, create one now
-            if doc_index.name not in self._indices:
-                self._indices[doc_index.name] = (
-                    GuideIndex(termkey=indextermkey))
+                # if we haven't already started an index with the same
+                # name as this one, create it
+                if index_name not in self._indices:
+                    self._indices[index_name] = (
+                        GuideIndex(termkey=indextermkey))
 
-            # merge this document's index into the consolidated one
-            # under the same name
-            self._indices[doc_index.name].merge(doc.getindex())
+                # merge this document's index into the consolidated one
+                # under the same name
+                self._indices[index_name].merge(doc.getindex(index_name))
 
 
-        # create a dictionary of formatted indices (keyed off the index
-        # node name)
+        # create a dictionary, keyed off the index node name, of
+        # formatted text indices from those built above
         formatted_indices = {
-            index_name: self._indices[index_name].format(line_maxlen)
-                for index_name in self._indices }
+            index_name:
+                self._indices[index_name].format(line_maxlen)
+                    for index_name in self._indices }
 
 
-        # go through the documents in the set, fixing up the indices
+        # go back through the documents in the set, replacing the indices
         for doc in self._docs:
-            # get this document's index node (or None, if there isn't one)
-            index_node = doc.getindexnode()
+            for index_name in doc.getindices():
+                # get the existing index (for the header and footer lines)
+                index = doc.getindex(index_name)
 
-            # skip this document, if it doesn't have an index
-            if not index_node:
-                continue
-
-            # replace the lines in the node (either existing, or new)
-            # with the set index, sandwiched between the header and
-            # footer lines from the index node in this document, and
-            # separator blank lines
-            index_node.replacelines(
-                doc.getindex().header
-                + ['']
-                + formatted_indices[index_node.name]
-                + ['']
-                + doc.getindex().footer)
+                # replace the node with the same name, using the header
+                # and footer from the original node, and the new
+                # consolidated index between
+                doc.getnode(index_name).replacelines(
+                    ((index.header + ['']) if index.header else [])
+                    + formatted_indices[index_name]
+                    + (([''] + index.footer) if index.footer else []))

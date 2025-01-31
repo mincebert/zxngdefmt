@@ -22,6 +22,14 @@ from .token import (
 
 
 
+# DOCCMD_x = string
+#
+# Constants identifying document commands.
+
+DOC_CMD_INDEX = "index"
+
+
+
 # DOC_CMDS = list
 #
 # This defines the available commands at the document (file) level.
@@ -38,7 +46,7 @@ DOC_CMDS = [
     "version",
     "date",
     "build",
-    "index",
+    DOC_CMD_INDEX,
 ]
 
 
@@ -64,34 +72,50 @@ class GuideDoc(object):
     """
 
 
-    def __init__(self, filename):
+    def __init__(self, filename, *, subindex_names=set()):
         """Initialise a new document, reading in data from a file.
         """
 
         super().__init__()
 
-        # store the name of this document from the filename
+        # --- set up initial variables ---
+
+        # store the name and subindex node names of this document
         self._setname(filename)
 
-        # initialise document-level commands
+        # initialise the list of index node names to the subindex set;
+        # when we read the file in later, we'll also add on the node
+        # named in the '@index' command, if there is one
+        self._index_names = set(subindex_names)
+
+        # initialise document-level commands as empty
         self._cmds = {}
 
-        # initialise the list of nodes
+        # initialise the list of nodes as empty
         self._nodes = []
 
-        # initialise an empty index - if one is requested to be built,
-        # this will be replaced with a completed one
-        self._index = GuideIndex()
+        # initialise an empty dictionary of indices - this will be
+        # populated by parseindices(), if called
+        self._indices = {}
 
         # initialise a list of warnings encountered when processing this
         # document
         self._warnings = []
 
-        # read the file, set the default links and check it
+        # --- read and process the document ---
+
+        # read in the document file
         self.readfile(filename)
+
+        # check the links to make sure they're not broken - we do this
+        # here, before we set the default links, as we don't want to
+        # report on broken links we fill in automatically; only the ones
+        # supplied in the source file (to help the user find the initial
+        # location of the problem)
         self.checklinks()
+
+        # set the default links between nodes and to the contents node
         self.setdefaultlinks()
-        self.parseindex()
 
 
     def _setname(self, name):
@@ -119,6 +143,22 @@ class GuideDoc(object):
         return self._name
 
 
+    def getcmd(self, name):
+        """Get the value of a document level command.  If the command is
+        not specified, None will be returned.
+        """
+
+        return self._cmds.get(name)
+
+
+    def getnodenames(self):
+        """Return a list containing the names of all the nodes in the
+        document in order.
+        """
+
+        return [ node.name for node in self._nodes ]
+
+
     def getnode(self, name):
         """Return the node of the specified name.  If the node doesn't
         exist, None will be returned.
@@ -131,47 +171,18 @@ class GuideDoc(object):
         return None
 
 
-    def getnodenames(self):
-        """Return a list containing the names of all the nodes in the
-        document in order.
+    def getindices(self):
+        """Get the list of index names.
         """
 
-        return [ node.name for node in self._nodes ]
+        return list(self._indices)
 
 
-    def getindex(self):
-        """Get the index.
+    def getindex(self, name):
+        """Get the index under the specified name.
         """
 
-        return self._index
-
-
-    def setindexnode(self, node):
-        """Set the node used as the index for this document.  The node
-        is supplied as a GuideNode object and the 'index' document-level
-        command is set to use this node.
-
-        If a node with the same name already exists, ValueError
-        exception is raised.
-        """
-
-        if self.getnode(node.name):
-            raise ValueError(f"node with name: {node.name} already"
-                             " exists in document")
-
-        # add the node to the document and set the index command to
-        # point to it
-        self._nodes.append(node)
-        self._cmds["index"] = node.name
-
-
-    def getindexnode(self):
-        """Get the GuideNode object repesenting the index for this
-        document.  If the node is not defined, or does not exist, None
-        is returned.
-        """
-
-        return self.getnode(self._cmds.get("index"))
+        return self._indices[name]
 
 
     def addwarning(self, warning):
@@ -194,8 +205,10 @@ class GuideDoc(object):
         warnings = self._warnings.copy()
 
         # add warnings from the index, prefixed with 'index:'
-        warnings.extend(
-            [ "index: " + warning for warning in self._index.getwarnings() ])
+        for index in self._indices:
+            warnings.extend(
+                [ f"index: {warning}"
+                      for warning in self._indices[index].getwarnings() ])
 
         # extend the copied list with the warnings from each node in the
         # document, prefixed by 'node: @name'
@@ -276,9 +289,16 @@ class GuideDoc(object):
                 current_node.appendline(l)
 
         # we're finished with the file - if we have a node we're
-        # assembling, append that to list of nodes in this document
+        # assembling, that's complete, so append that to list of nodes
+        # in this document
         if current_node:
             self._nodes.append(current_node)
+
+        # if the document had an index named in the '@index' document
+        # command, add that to the list of index node names
+        doc_index_name = self._cmds.get(DOC_CMD_INDEX)
+        if doc_index_name:
+            self._index_names.add(doc_index_name)
 
 
     def setdefaultlinks(self):
@@ -333,7 +353,7 @@ class GuideDoc(object):
         node_names = self.getnodenames()
 
         # record a warning if the index node is defined but does not exist
-        index_name = self._cmds.get("index")
+        index_name = self._cmds.get(DOC_CMD_INDEX)
         if index_name and (index_name not in node_names):
             self.addwarning(f"index node: @{index_name} does not exist")
 
@@ -342,32 +362,40 @@ class GuideDoc(object):
             node.checklinks(node_names)
 
 
-    def parseindex(self):
-        """Parse the index node of the document, if it is defined and
+    def parseindices(self):
+        """Parse the index nodes of the document, if it is defined and
         exists, into a GuideIndex.  The index is stored in .index and
         True returned; if the node was not defined, or defined but not
         present, None is returned.
         """
 
+        # --- make the list indices for this document ---
+
+        # initialise the list of index names to empty
+        index_names = []
+
+        # if the document has an '@index' then add that as the first index
+        index_name = self.getcmd(DOC_CMD_INDEX)
+        if index_name:
+            index_names.append(index_name)
+
+        # add any additional subindex names supplied to this function
+        index_names.extend(i for i in self._index_names if i != index_name)
+
+        # --- process the indices ---
+
         # initialise the index as empty
-        self._index = GuideIndex()
+        self._indices = {}
 
-        # get the index node defined for this document - if one was not
-        # defined or the node defined was not found, return None to
-        # indicate no index node was processed
-        #
-        # we don't add a warning if the node was not persent as this
-        # would be done by checklinks()
-        index_node = self.getindexnode()
-        if not index_node:
-            return None
+        # go through the list of indices we built above
+        for index_name in index_names:
+            # try to get the node with the same name as the index
+            index_node = self.getnode(index_name)
 
-        # parse the node as an index and store the returned GuideIndex
-        # in the document
-        self._index = index_node.parseindex()
-
-        # return success
-        return True
+            # if it exists - parse the node as an index and store the
+            # returned GuideIndex in the document
+            if index_node:
+                self._indices[index_name] = index_node.parseindex()
 
 
     def format(self, *, node_docs={}, line_maxlen=LINE_MAXLEN, markup=True,
@@ -380,10 +408,15 @@ class GuideDoc(object):
 
         The output is returned as a list of lines as strings.
 
-        If 'markup' is not set, a readable, plain text version of the
-        document will be generated.
+        Keyword arguments:
 
-        'skip_index' will omit index nodes in the output.
+        line_maxlen -- the maximum line length; lines longer than this
+        will be word-wrapped (unless matching the 'literal' format).
+
+        markup -- if not set, a readable, plain text version without
+        markup, will be generated.
+
+        skip_index -- will omit index nodes in the output.
         """
 
         # initialise the output as an empty list of lines
