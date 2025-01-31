@@ -17,7 +17,7 @@ from .token import LINK_RESTR, renderstring
 # default indent for the references (right) columnn in a formatted
 # (generated) index - this is the width of the terms (left) column
 
-DEFAULT_REFS_INDENT = 20
+DEFAULT_REFS_INDENT = 22
 
 
 # minimum number of spaces to leave between a term and the start of the
@@ -617,6 +617,7 @@ class GuideIndex(object):
             # one, we need to insert a blank line
             if ((prev_term_group is not None)
                 and (term_group != prev_term_group)):
+
                     index_lines.append('')
 
             # get the dictionary about this term
@@ -646,14 +647,11 @@ class GuideIndex(object):
                 # if the length of the rendered version, added to the
                 # minimum gap between it and the references, is over the
                 # width of the terms column, write out the term on a
-                # line of it's own and start a new line for the
+                # line of it's own and start a new indented line for the
                 # references
                 if len(line_render) + terms_gap > terms_width:
                     index_lines.append(line_markup)
-
-                    tab = ' ' * terms_width
-                    line_render += tab
-                    line_markup += tab
+                    line_markup = line_render = ' ' * terms_width
 
 
                 # the term and gap will fit in the terms column - add
