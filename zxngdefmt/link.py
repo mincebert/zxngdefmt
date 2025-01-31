@@ -70,7 +70,7 @@ INDEX_REFS_RE = re.compile(
 
 
 
-def indextermkey_factory(ignore_chars):
+def indextermkey_factory(term_prefixes):
     """Factory function to make a function which will return the sort
     key to be used by a term in the index.  The first character of this
     string will also be used to group terms in the index.
@@ -79,13 +79,15 @@ def indextermkey_factory(ignore_chars):
 
     The function will use the following rules in order:
 
-    1.  If the term starts with a character in the list ignore_chars,
-        that character will be removed and the rest of the string used.
-        This can be used to remove leading '.'s.
+    1.  If the term starts with one of the strings in the list
+        'index_term_prefixes', that prefix will be removed and the rest
+        of the string used.  This can be used to remove leading
+        characters and strings to be ignored when sorting the index.
 
     2.  If the term starts with anything other than a number or letter,
-        a space will be prefixed, causing that entry to appear before
-        the entries with numbers and letters at the start.
+        a space will be prefixed, causing those terms to be grouped
+        together at the start (since space comes before all other
+        printable characters) but still appear sorted within that.
 
     3.  Anything else is returned as is.
 
@@ -94,13 +96,21 @@ def indextermkey_factory(ignore_chars):
     """
 
     def indextermkey(term):
-        if term[0] in ignore_chars:
-            r = term[1:]
-            return r.lower() if r else term
+        # if the term starts with one of the prefix strings, strip that
+        # off and return it lower-cased
+        for prefix in term_prefixes:
+            if term.startswith(prefix):
+                return term[len(prefix):].lower()
+
+        # if the term doesn't start with an alphanumeric character,
+        # prefix it with a space and lower-case it
         if not re.match("[0-9A-Z]", term, re.IGNORECASE):
             return ' ' + term.lower()
+
+        # return the term lower-cased
         return term.lower()
 
+    # return the function
     return indextermkey
 
 

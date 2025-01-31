@@ -184,7 +184,8 @@ class GuideSet(object):
         return nodes
 
 
-    def makeindices(self, *, line_maxlen=LINE_MAXLEN, index_ignore=[]):
+    def makeindices(self, *, line_maxlen=LINE_MAXLEN, index_term_prefixes=[]):
+
         """Make an consolidated indices for the set, merging together
         the index pages with the same node name as each other.
 
@@ -199,11 +200,11 @@ class GuideSet(object):
         line_maxlen -- the maximum line length; lines longer than this
         will be word-wrapped (unless matching the 'literal' format).
 
-        index_ignore -- a list of characters which will be ignored when
-        sorting and grouping terms in the index - for example, if ['.',
-        '-'] is supplied, terms such as '.term' and '-arg' will be
-        sorted as 'term' and 'arg' and grouped with other 't' and 'a'
-        terms.
+        index_term_prefixes -- a list of strings which, if present,
+        will be removed from the front of terms when sorting and
+        grouping them - for example, if ['.', '- '] is supplied, terms
+        such as '.term' and '- arg' will be sorted as 'term' and 'arg'
+        and grouped with other 't' and 'a' terms.
         """
 
 
@@ -215,7 +216,7 @@ class GuideSet(object):
 
         # use the factory function to make a function which will return
         # the key for index term sorting and grouping
-        indextermkey = indextermkey_factory(index_ignore)
+        indextermkey = indextermkey_factory(index_term_prefixes)
 
         # go through the documents in the set, building the consolidated
         # indices
