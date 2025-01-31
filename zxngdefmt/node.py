@@ -425,8 +425,8 @@ class GuideNode(object):
         # a warning
         if num_links > NODE_MAXLINKS:
             self.addwarning(
-                f"number of links over maximum ({NODE_MAXLINKS}) -"
-                " excess links will be unselectable")
+                f"number of links: {num_links} over maximum:"
+                f" {NODE_MAXLINKS} - excess links will be unselectable")
 
         # return the list of formatted lines
         return output
