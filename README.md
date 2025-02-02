@@ -32,9 +32,6 @@ source documents to perform a number of tasks:
 
 These functions are described below.
 
-The utility is in fairly early stages of development and will be enhanced and
-fixed, as required.
-
 Usage
 -----
 
@@ -42,8 +39,9 @@ The utility is an excecutable Python module and can be run with the `-m`
 option and the name of the module.  `-h` gives help:
 
 ```
-rcf@doraemon zxngdefmt % python3 -m zxngdefmt -h
-usage: zxngdefmt [-h] [-o OUTPUT_DIR] [-i] [-w] [-n] [-v] file [file ...]
+usage: zxngdefmt [-h] [-o OUTPUT_DIR] [-i] [-I SUBINDEX] [-p PREFIX] [-w] [-n]
+                 [-r] [-v]
+                 file [file ...]
 
 positional arguments:
   file                  filename of NextGuide document(s) to read
@@ -54,10 +52,24 @@ options:
                         directory to write out formatted NextGuide files
   -i, --index           recreate index pages, including common index across
                         set
+  -I SUBINDEX, --subindex SUBINDEX
+                        additional node name to process as a subindex, besides
+                        the one named in the '@index' document command
+  -p PREFIX, --index-term-prefix PREFIX
+                        leading strings to ignore when sorting and grouping
+                        index terms - e.g. if set to '.' then '.term' as a
+                        term will be sorted and grouped under 't'; note this
+                        can be a string and not just a single character, and
+                        this option can be used multiple times for multiple
+                        prefixes
   -w, --no-warnings     suppress printing of warnings encountered during
                         formatting to stdandard error
   -n, --nodes           print a list of all nodes in the set to standard
                         output
+  -r, --readable        render a readable, plain text version of the guide set
+                        to standard output: remove markup, skip index pages,
+                        highlight links, don't print filenames; only used if
+                        -o is not specified
   -v, --version         show program's version number and exit
 ```
 
@@ -91,6 +103,9 @@ the correct order for stepping through the nodes in a guide.
 If the `@toc` (table of contents) command is not defined for a node, the value
 from the previous node will be re-used.  This allows the contents node to be
 specified once at the beginning, or only as it needs to change.
+
+To avoid these being automatically completed (especially `@toc`), the value
+"`-`" can be specified.
 
 Fix links to other documents
 ----------------------------
@@ -133,9 +148,14 @@ This information is used to assemble a single index containing all terms and,
 for each term, all the references.  The terms in the index are sorted into
 ASCIIbetical order, with all non alphanumeric characters first (i.e. symbols).
 
-Note: there is a limitation of 255 links per node.  The index generator does
-will generate a warning if this is exceed but it is currently not worked
-around.  A solution may be to split the index into two tiers.
+Additional node names can be specified as providing indexes using the `-I`
+(subindex) option.  These will be consolidated and processed in the same way.
+
+Note: there is a limitation of 255 links per node.  The program will produce a
+warning if this is exceeded (on any node, including a generated index node)
+but it is currently not worked around.  A solution may be to split the index
+into two tiers, but this can be worked around manually using the subindex
+feature.
 
 Checking
 --------
@@ -153,3 +173,12 @@ restriction.
 For reference purposes, with the `-n` option, the utility can also output a
 list of all nodes in the set, along with this document they appear in, sorted
 by node name order.
+
+Readable, plain-text version
+----------------------------
+
+The `-r` option will generate a "readable" version of the guide set in plain
+text, without markup, and print it to standard output.
+
+This is useful if a version of the guide that doesn't need the NextGuide
+viewer (or a Spectrum Next) is required.
