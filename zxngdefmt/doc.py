@@ -431,12 +431,9 @@ class GuideDoc(object):
 
         # go through the nodes in the document in order
         for node in self._nodes:
-            # if this document has an index node, and this node is it,
-            # and we're skipping the index node, do that
-            if (skip_index
-                and self.getindexnode()
-                and (node.name == self.getindexnode().name)):
-
+            # if the name of this node is in the list of indices for
+            # this document, and we're skipping those, ignore this node
+            if skip_index and (node.name in self.getindices()):
                 continue
 
             # add a line of dashes before this node as a separator
