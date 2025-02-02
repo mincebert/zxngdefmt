@@ -7,7 +7,6 @@
 import os
 import re
 
-from .index import GuideIndex
 from .node import GuideNode, LINE_MAXLEN
 
 from .token import (
@@ -124,15 +123,16 @@ class GuideDoc(object):
         if not, the complete name will be stored.
         """
 
-        # get the leaf part of the name
-        basename = os.path.basename(name)
+        # get the leaf part of the name, split into root and extension
+        root, ext = os.path.splitext(os.path.basename(name))
 
-        # strip off '.gde' if that's present (the NextGuide viewer will
-        # add that on, if the file is not found, with the plain name)
-        if basename.endswith(".gde"):
-            self._name = basename[:-4]
+        # strip off the extension if it's '.gde' or '.ugde' (unformatted
+        # guide - a term invented for this tool); the NextGuide viewer
+        # add on '.gde' if the file is not found, with the plain name
+        if ext in [".gde", ".ugde"]:
+            self._name = root
         else:
-            self._name = basename
+            self._name = root + ext
 
 
     def getname(self):
