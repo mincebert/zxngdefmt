@@ -65,6 +65,12 @@ INDEX_REFS_RE = re.compile(
     + r"(,\s*(?P<remainder>.+))?")
 
 
+# the separating character between the document name and node name in a
+# link between documents
+
+DOC_SEPARATOR = ':'
+
+
 
 # --- functions ---
 
@@ -247,18 +253,20 @@ class GuideNodeDocs(object):
 
         The following steps are checked in order of priority:
 
-        1. If the link contains '/', it's assumed to already be correct.
+        1. If the link contains a document separator, it's assumed to
+        already be correct.
 
         2. If the target is in this document, leave it unqualified.
 
         3. If the target does not exist, return None (= not found / broken).
 
-        4. Return the target prefixed with the document name and '/'.
+        4. Return the target prefixed with the document name and the
+        separator character.
         """
 
         # if the link is already qualified with a document name, assume
         # it's correct and leave it alone
-        if '/' in target_name:
+        if DOC_SEPARATOR in target_name:
             return target_name
 
         # if the target is in the supplied document, we assume it's
@@ -274,7 +282,7 @@ class GuideNodeDocs(object):
             return None
 
         # the target is in another document - return it qualified
-        return self._nodes[target_name] + '/' + target_name
+        return self._nodes[target_name] + DOC_SEPARATOR + target_name
 
 
 

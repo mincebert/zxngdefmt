@@ -117,7 +117,7 @@ qualified with the document name, when it is written out.
 
 For example, if _Node1_ in _Document1_ contains a link command of the form
 `@{" to Node 2 " LINK Node2}`, and _Node2_ resides in _Document2_, the link
-will be rewritten to `@{" to Node 2 " LINK Document2/Node2}`, which will instruct the NextGuide viewer to load the `Document2` guide file and select
+will be rewritten to `@{" to Node 2 " LINK Document2:Node2}`, which will instruct the NextGuide viewer to load the `Document2` guide file and select
 `Node2`.
 
 Consolidated index
