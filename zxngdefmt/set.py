@@ -220,7 +220,7 @@ class GuideSet(object):
                             f" {doc.getname()} value:"
                             f" '{doc.getcmd(cmd)}' inconsistent with"
                             f" first document in set: {first_doc_name}"
-                            f" value: {first_doc_values[cmd]}")
+                            f" value: '{first_doc_values[cmd]}'")
 
 
     def print(self, *, readable=False):
