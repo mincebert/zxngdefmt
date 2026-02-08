@@ -15,9 +15,9 @@ e.g. to the next and previous nodes (pages).  As nodes are inserted, moved or
 removed, these must be adjusted manually.
 
 Finally, links can point to nodes in other documents (in version 1.1 and
-later).  If a document is part of a set, and nodes are moved between documents,
-as the set is reorganised, it is difficult to maintain a link to the correct
-document.
+later) by using the syntax `@{"..." LINK <doc>:<node>}`.  If a document is part
+of a set, and nodes are moved between documents, as the set is reorganised, it
+is difficult to maintain a link to the correct document.
 
 This utility, `zxngdefmt`, attempts to resolve these issues by processing the
 source documents to perform a number of tasks:
@@ -25,7 +25,7 @@ source documents to perform a number of tasks:
 * calculate displayed line lengths of word wrap text
 * populate links between previous and next nodes in a document automatically
 * fix links to nodes in other documents by qualifying them with the correct
-  document name
+  document name and separator character
 * automatically consolidate index nodes across a set of documents into a single
   index
 * check documents for broken links and other mistakes
@@ -39,8 +39,8 @@ The utility is an excecutable Python module and can be run with the `-m`
 option and the name of the module.  `-h` gives help:
 
 ```
-usage: zxngdefmt [-h] [-o OUTPUT_DIR] [-i] [-I SUBINDEX] [-p PREFIX] [-w] [-n]
-                 [-r] [-v]
+usage: zxngdefmt [-h] [-o OUTPUT_DIR] [-i] [-I SUBINDEX] [-p PREFIX] [-c] [-w]
+                 [-n] [-r] [-v]
                  file [file ...]
 
 positional arguments:
@@ -62,6 +62,10 @@ options:
                         can be a string and not just a single character, and
                         this option can be used multiple times for multiple
                         prefixes
+  -c, --no-check-consistency
+                        don't check document level commands across the set for
+                        consistency (commands checked are: author, copyright,
+                        version)
   -w, --no-warnings     suppress printing of warnings encountered during
                         formatting to stdandard error
   -n, --nodes           print a list of all nodes in the set to standard
@@ -104,8 +108,8 @@ If the `@toc` (table of contents) command is not defined for a node, the value
 from the previous node will be re-used.  This allows the contents node to be
 specified once at the beginning, or only as it needs to change.
 
-To avoid these being automatically completed (especially `@toc`), the value
-"`-`" can be specified.
+To avoid these being automatically completed (in particular `@toc`), the
+special value "`-`" can be specified.
 
 Fix links to other documents
 ----------------------------
@@ -169,6 +173,14 @@ If a node name is re-used within a document or across two documents in a set,
 a warning will be generated.  This latter restriction is to avoid ambiguity
 when fixing links across documents.  The index node is exempted from this
 restriction.
+
+The current version of NextGuide limits individual documents to 64KBytes in
+size.  If this is exceeded, a warning will be generated.
+
+Various document level commands will also be checked for consistency across
+the documents in a set - author, copyright and version - and a warning
+generated if they don't match.  This particular check can be disabled using the
+`-c` command line option.
 
 For reference purposes, with the `-n` option, the utility can also output a
 list of all nodes in the set, along with this document they appear in, sorted
