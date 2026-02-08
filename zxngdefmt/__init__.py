@@ -4,7 +4,7 @@
 from .doc import GuideDoc
 from .index import GuideIndex, indextermkey_factory
 from .node import GuideNode
-from .set import GuideSet
+from .set import GuideSet, CONSISTENT_DOC_CMDS
 
 
 
@@ -18,4 +18,5 @@ __all__ = [
     "GuideNode",
     "GuideSet",
     "indextermkey_factory",
+    "CONSISTENT_DOC_CMDS",
 ]

@@ -26,6 +26,15 @@ DEFAULT_INDEX_NAME = "INDEX"
 
 
 
+# CONSISTENT_DOC_CMDS = list
+#
+# The list of document level commands to check for consistency across a
+# set.
+
+CONSISTENT_DOC_CMDS = [ "author", "copyright", "version" ]
+
+
+
 # --- functions ---
 
 
@@ -174,6 +183,44 @@ class GuideSet(object):
                 # for a single NextGuide document
                 if f.tell() > DOC_MAXSIZE:
                     doc.addwarning(f"over maximum size: {DOC_MAXSIZE} bytes")
+
+
+    def checkconsistency(self):
+        """This method checks for consistency amongst several document
+        level commands across the set.  If any are found to mismatch
+        with the first document in the set, a warning will be generated
+        for that document.
+        
+        The document level commands checked are 'author', 'copyright'
+        and 'version'.  The other document level commands are permitted
+        to differ without warning.
+        """
+
+        # the name of the first document in the set and its document
+        # command values
+        first_doc_name = None
+        first_doc_values = {}
+
+        for doc in self._docs:
+            # have we processed the first document yet?
+            if first_doc_name is None:
+                # no - store the name and store the document level
+                # command values we're checking
+                first_doc_name = doc.getname()
+                for cmd in CONSISTENT_DOC_CMDS:
+                    first_doc_values[cmd] = doc.getcmd(cmd)
+
+            else:
+                # we're checking the second or a following document, so
+                # compare them with the first
+                for cmd in CONSISTENT_DOC_CMDS:
+                    if first_doc_values[cmd] != doc.getcmd(cmd):
+                        self.addwarning(
+                            f"command: {cmd} in document:"
+                            f" {doc.getname()} value:"
+                            f" '{doc.getcmd(cmd)}' inconsistent with"
+                            f" first document in set: {first_doc_name}"
+                            f" value: {first_doc_values[cmd]}")
 
 
     def print(self, *, readable=False):

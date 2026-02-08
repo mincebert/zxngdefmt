@@ -5,7 +5,7 @@
 import argparse
 import sys
 
-from . import __version__, GuideSet, indextermkey_factory
+from . import __version__, GuideSet, CONSISTENT_DOC_CMDS, indextermkey_factory
 
 
 
@@ -51,6 +51,14 @@ parser.add_argument(
          " multiple times for multiple prefixes")
 
 parser.add_argument(
+    "-c", "--no-check-consistency",
+    action="store_true",
+    help="don't check document level commands across the set for"
+         " consistency (commands checked are:"
+         f" { ', '.join(CONSISTENT_DOC_CMDS) }"
+         ")")
+
+parser.add_argument(
     "-w", "--no-warnings",
     action="store_true",
     help="suppress printing of warnings encountered during formatting"
@@ -91,6 +99,10 @@ args = parser.parse_args()
 
 # read in the specified list of NextGuide files
 guide_set = GuideSet(args.file, subindex_names=args.subindex)
+
+# unless suppressed, check the set for consistency
+if not args.no_check_consistency:
+    guide_set.checkconsistency()
 
 # use a factory function to make a function which will return the key
 # for index term sorting and grouping
