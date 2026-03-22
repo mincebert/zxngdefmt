@@ -6,7 +6,7 @@ all: zxngdefmt
 remake: clean all
 
 zxngdefmt:
-	./setup.py sdist bdist_wheel
+	python3 -m build
 
 upload:
 	python3 -m twine upload dist/*
