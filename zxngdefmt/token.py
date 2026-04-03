@@ -127,7 +127,7 @@ def rendertoken(t, *, link_bracket=False):
         c = m["char"]
 
         # '@(' is the copyright sign
-        if c == "(":
+        if c == '(':
             return "\N{COPYRIGHT SIGN}"
 
         # everything else we treat as whatever is after the '@'
