@@ -25,7 +25,8 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "-o", "--output-dir",
-    help="directory to write out formatted NextGuide files")
+    help="directory to write out formatted NextGuide files with '.gde'"
+         " extensions; the default is to print on standard output")
 
 parser.add_argument(
     "-i", "--index",
