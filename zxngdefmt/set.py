@@ -237,9 +237,10 @@ class GuideSet(object):
         """
 
         for doc in self._docs:
-            # we only print the filename of this document is rendering
-            # a non-readable 'debugging' format
-            if not readable:
+            # we only print the filename of this document if rendering
+            # a non-readable 'debugging' format and there's more than
+            # one document in the set
+            if (not readable) and len(self._docs) > 1:
                 print()
                 print(f"=== {doc.getname()} ===")
                 print()
