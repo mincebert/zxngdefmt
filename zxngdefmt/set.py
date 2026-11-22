@@ -166,6 +166,19 @@ class GuideSet(object):
             self._node_docs.addnodes(doc)
 
 
+    def writetextfile(self, file):
+        """Write out the set to a single named file in a readable, plain
+        text, format without markup.
+        """
+
+        with open(file, 'w') as f:
+            for doc in self._docs:
+                print('\n'.join(doc.format(node_docs=self._node_docs,
+                                           markup=False,
+                                           skip_index=True)),
+                      file=f)
+
+
     def writefiles(self, dir):
         """Write out the set to a series of files in the specified
         directory.

@@ -72,6 +72,14 @@ parser.add_argument(
     help="print a list of all nodes in the set to standard output")
 
 parser.add_argument(
+    "-t", "--text-file",
+    help="in addition to any other output, write a plain text"
+         " 'readable' version of the entire guide set to a single file"
+         " whose name is specified; this is the same as the output that"
+         " would be written to standard output, if the -o and -G"
+         " options were not used")
+
+parser.add_argument(
     "-G", "--guide",
     action="store_true",
     default=False,
@@ -119,6 +127,11 @@ if args.output_dir:
     guide_set.writefiles(args.output_dir)
 else:
     guide_set.print(markup=args.guide)
+
+# if the option to write a readable, plain text version of the guide set
+# to a file is used, do that
+if args.text_file:
+    guide_set.writetextfile(args.text_file)
 
 # if the 'list nodes' option is used, print the names of all nodes,
 # alongside the document(s) in which they are defined
