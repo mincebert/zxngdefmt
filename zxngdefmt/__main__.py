@@ -95,7 +95,8 @@ parser.add_argument(
 parser.add_argument(
     "file",
     nargs='+',
-    help="filename of NextGuide document(s) to read")
+    help="filename of NextGuide document(s) to read (typically having"
+         "'.ugde' extensions)")
 
 
 args = parser.parse_args()
