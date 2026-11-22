@@ -25,6 +25,11 @@ import re
 LINK_RESTR = r'@{ *"(?P<link_text>[^"]+)" LINK (?P<link_target>[^ }]+) *}'
 LINK_RE = re.compile(LINK_RESTR)
 
+# justify attribute - these are a subset of formatting attributes so
+# must be checked first
+JUSTIFICATION_RESTR = r'@{(?P<justification>[rc])}'
+JUSTIFICATION_RE = re.compile(JUSTIFICATION_RESTR)
+
 # formatting attribute
 ATTR_RESTR = r"@{\w+}"
 ATTR_RE = re.compile(ATTR_RESTR)
@@ -144,7 +149,7 @@ def rendertoken(t, *, link_bracket=False):
 
 
 
-def renderstring(s, *, link_bracket=False):
+def renderstring(s, *, link_bracket=False, line_maxlen=None):
     """Return a string containing tokens (literals, commands, spaces,
     etc.) rendered into their plain text equivalent.  It is a wrapper
     around rendertoken() which iteratively renders all the tokens in a
@@ -155,6 +160,9 @@ def renderstring(s, *, link_bracket=False):
 
     # start with the rendered string empty
     r = ''
+
+    # default to no (= left) justification, unless specified
+    justification = None
 
     # go through the string matching tokens (markup, literal or spaces)
     remainder = s
@@ -168,6 +176,22 @@ def renderstring(s, *, link_bracket=False):
 
         token, remainder = m.group("token", "remainder")
 
-        r += rendertoken(token, link_bracket=link_bracket)
+        # if a justification token is found, set that and loop to the next,
+        # else render the token or literal
+        j = JUSTIFICATION_RE.match(token)
+        if j:
+            justification = j.group("justification")
+        else:
+            r += rendertoken(token, link_bracket=link_bracket)
+
+    # if a justification token was encountered, justify the line accordingly
+    if justification and line_maxlen:
+        if justification == 'c':
+            r = ' ' * ((line_maxlen - len(r)) // 2) + r
+        elif justification == 'r':
+            r = ' ' * (line_maxlen - len(r)) + r
+        else:
+            raise AssertionError(
+                       "invalid justification mode: " + justification)
 
     return r

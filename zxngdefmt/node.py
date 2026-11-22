@@ -387,7 +387,8 @@ class GuideNode(object):
                 # with link 'bracketing' if not
                 output.append(
                     line if markup
-                        else renderstring(line, link_bracket=not markup))
+                         else renderstring(line, link_bracket=not markup,
+                                           line_maxlen=line_maxlen))
 
                 continue
 
