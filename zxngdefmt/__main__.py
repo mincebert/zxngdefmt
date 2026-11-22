@@ -26,7 +26,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-o", "--output-dir",
     help="directory to write out formatted NextGuide files with '.gde'"
-         " extensions; the default is to print on standard output")
+         " extensions; the default is to print a 'readable' version,"
+         " with markup removed, to standard output")
 
 parser.add_argument(
     "-i", "--index",
@@ -71,13 +72,12 @@ parser.add_argument(
     help="print a list of all nodes in the set to standard output")
 
 parser.add_argument(
-    "-r", "--readable",
+    "-G", "--guide",
     action="store_true",
     default=False,
-    help="render a readable, plain text version of the guide set to"
-         " standard output: remove markup, skip index pages, highlight"
-         " links, don't print filenames; only used if -o is not"
-         " specified")
+    help="when printing to standard output (-o is not specified), print"
+         " the output in guide (.gde) format, with filename separators"
+         " (default is to print a plain text, 'readable' version'")
 
 parser.add_argument(
     "-v", "--version",
@@ -118,7 +118,7 @@ if args.index:
 if args.output_dir:
     guide_set.writefiles(args.output_dir)
 else:
-    guide_set.print(readable=args.readable)
+    guide_set.print(markup=args.guide)
 
 # if the 'list nodes' option is used, print the names of all nodes,
 # alongside the document(s) in which they are defined

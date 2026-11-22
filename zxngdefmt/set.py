@@ -223,31 +223,31 @@ class GuideSet(object):
                             f" value: '{first_doc_values[cmd]}'")
 
 
-    def print(self, *, readable=False):
+    def print(self, *, markup=False):
         """Print out the set of guide documents to standard output, with
         a separator between each one.
 
-        The 'readable' option controls whether a plain text version is
-        rendered, rather than one including markup.  This will also skip
-        any index nodes in each document, as they generally aren't very
-        useful, in this format.
+        The 'markup' option controls whether the output should be a
+        plain text 'readable' version (= False) or a guide ('.gde')
+        format version containing markup (= True).
 
-        'readable' not being set is primarily useful for debugging
-        purposes only.
+        If printing plain text any index nodes will be skipped.  If
+        printing guide format files containing markup, a separator will
+        be printed between each file.
         """
 
         for doc in self._docs:
             # we only print the filename of this document if rendering
-            # a non-readable 'debugging' format and there's more than
-            # one document in the set
-            if (not readable) and len(self._docs) > 1:
+            # markup format output and there's more than one document in
+            # the set
+            if markup and len(self._docs) > 1:
                 print()
                 print(f"=== {doc.getname()} ===")
                 print()
 
             # print the formatted lines
             for line in doc.format(node_docs=self._node_docs,
-                                   markup=not readable, skip_index=readable):
+                                   markup=markup, skip_index=not markup):
                 print(line)
 
 
